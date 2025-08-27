@@ -12,6 +12,11 @@ class Token{
         this -> value = value;
     }
 
+    Token() {
+        type = "";
+        value = "";
+    }
+
     string get_type() {
         return type;
     }

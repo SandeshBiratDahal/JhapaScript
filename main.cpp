@@ -9,7 +9,6 @@
 using namespace std;
 
 class Interpreter{
-
     string raw_code;
     vector<string> code_lines;
 
@@ -22,7 +21,6 @@ class Interpreter{
     };
 
     public:
-
         // Reads the source code and divides it into different lines
         void read(string file_path){
             ifstream source_file(file_path);
@@ -44,10 +42,17 @@ class Interpreter{
             }
         }
 
+        void show_tokens(vector<Token> tokens) {
+            for (int i = 0; i < tokens.size(); i++) {
+                cout << tokens[i].repr() << endl << endl;
+            }
+        }
+
         // returns all the tokens as objects of class 'Token' in a given line of code
         vector<Token> tokenize_line(int index) {
 
             vector<Token> tokens;
+            if (index >= code_lines.size()) return tokens;
             string line = code_lines[index], current_token;
             int i = 0, j;
 
@@ -131,12 +136,73 @@ class Interpreter{
                     tokens.emplace_back("operator:divide", "/");
                 }
 
+                else if (letter == '>') {
+                    if (line[i + 1] == '=') {
+                        tokens.emplace_back("operator:greaterorequal", ">=");
+                        i++;
+                    }
+                    else tokens.emplace_back("operator:greater", ">");
+                }
+
+                else if (letter == '<') {
+                    if (line[i + 1] == '=') {
+                        tokens.emplace_back("operator:lesserorequal", "<=");
+                        i++;
+                    }
+                    else tokens.emplace_back("operator:lesser", "<");
+                }
+
+                else if (letter == '!') {
+                    if (line[i + 1] == '=') {
+                        tokens.emplace_back("operator:notequal", "!=");
+                        i++;
+                    }
+                    else tokens.emplace_back("operator:not", "!");
+                }
+
+                else if (letter == ',') {
+                    tokens.emplace_back("operator:comma", ",");
+                }
+
+                else if (letter == '(') {
+                    tokens.emplace_back("leftparanthesis", "(");
+                }
+
+                else if (letter == ')') {
+                    tokens.emplace_back("rightparanthesis", ")");
+                }
+
                 i++;
             }
-
             return tokens;
-        } 
+        }
 
+        string evaluate(vector<Token> expression) {
+            int i = 0;
+            Token current_token;
+            while (i < expression.size()){
+                current_token = expression[i];
+
+                if (current_token.get_value() == "(") {
+                    int no_of_open_paranthesis = 1, j = i + 1;
+                    vector<Token> sub_tokens;
+                    while (true) {
+                        if (expression[j].get_value() == "(") no_of_open_paranthesis++;
+                        else if (expression[j].get_value() == ")") no_of_open_paranthesis--;
+                        if (expression[j].get_value() == ")" && no_of_open_paranthesis == 0) break;
+                        sub_tokens.push_back(expression[j]);
+                        j++;
+                        if (j > expression.size()) break;
+                    }
+
+                    // I need to replace the sub tokens with the evaluated value which can be achieved by using recursion
+                    i = j - 1;
+                }
+
+                i++;
+            }
+            return "0";
+        }
 };
 
 
@@ -145,8 +211,7 @@ int main() {
     nova.read("program.nv");
     vector<Token> n = nova.tokenize_line(0);
 
-    for (int i = 0; i < n.size(); i++) {
-        cout << n[i].repr() << endl << endl;
-    }
+    nova.evaluate(n);
+    
     return 0;
 }
