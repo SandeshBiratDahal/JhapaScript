@@ -72,6 +72,7 @@ class Interpreter{
                     i = j - 1;
                 }
 
+                // for interges and floats
                 else if (nums.find(letter) != string::npos) {
                     bool has_decimal = false;
                     current_token += letter;
@@ -91,7 +92,43 @@ class Interpreter{
                     else tokens.emplace_back("integer", current_token);
 
                     i = j - 1;
+                }
+                // for strings
+                else if (letter == '"') {
+                    j = i + 1;
+                    while (line[j] != '"' && j < line.length()) {
+                        current_token += line[j];
+                        j++;
+                    }
+                    tokens.emplace_back("string", current_token);
 
+                    i = j;
+                }
+
+                // NOW ALL FOR OPERATORS AND SYMBOLS
+
+                else if (letter == '=') {
+                    if (line[i + 1] == '=') {
+                        tokens.emplace_back("operator:equal", "==");
+                        i++;
+                    }
+                    else tokens.emplace_back("operator:assignment", "=");
+                }
+
+                else if (letter == '+') {
+                    tokens.emplace_back("operator:plus", "+");
+                }
+
+                else if (letter == '-') {
+                    tokens.emplace_back("operator:minus", "-");
+                }
+
+                else if (letter == '*') {
+                    tokens.emplace_back("operator:multiply", "*");
+                }
+
+                else if (letter == '/') {
+                    tokens.emplace_back("operator:divide", "/");
                 }
 
                 i++;
@@ -108,6 +145,8 @@ int main() {
     nova.read("program.nv");
     vector<Token> n = nova.tokenize_line(0);
 
-    cout << n[2].repr();
+    for (int i = 0; i < n.size(); i++) {
+        cout << n[i].repr() << endl << endl;
+    }
     return 0;
 }
