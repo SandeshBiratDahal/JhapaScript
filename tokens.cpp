@@ -25,6 +25,14 @@ class Token{
         return value;
     }
 
+    void set_value(string value) {
+        this -> value = value;
+    }
+
+    void set_type(string type) {
+        this -> type = type;
+    }
+
     string repr() {
         return "<Token \ntype=" + type + ",\nvalue=" + value + ">";
     }

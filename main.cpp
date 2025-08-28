@@ -177,13 +177,15 @@ class Interpreter{
             return tokens;
         }
 
-        string evaluate(vector<Token> expression) {
+        Token evaluate(vector<Token> expression, int depth = 0) {
+            bool has_paranthesis = false;
             int i = 0;
             Token current_token;
             while (i < expression.size()){
                 current_token = expression[i];
-
+                
                 if (current_token.get_value() == "(") {
+                    has_paranthesis = true;
                     int no_of_open_paranthesis = 1, j = i + 1;
                     vector<Token> sub_tokens;
                     while (true) {
@@ -195,13 +197,95 @@ class Interpreter{
                         if (j > expression.size()) break;
                     }
 
-                    // I need to replace the sub tokens with the evaluated value which can be achieved by using recursion
-                    i = j - 1;
+                    // I need to replace the sub tokens with the evaluated value which can be achieved by using recursion:: DONE
+
+                    //show_tokens(sub_tokens);
+                    expression.erase(expression.begin() + i, expression.begin() + j + 1);
+                    expression.insert(
+                        expression.begin() + i, evaluate(sub_tokens, depth + 1)
+                    );
+                    has_paranthesis = false;
+                    //show_tokens(expression);
+                }
+                i++; 
+            }
+
+            if (!has_paranthesis) {
+                //show_tokens(expression);
+                i = 0;
+
+                //Highest Priority for * and /
+                while (i < expression.size()) {
+                    current_token = expression[i];
+                    double left_operand_float, right_operand_float;
+                    if (current_token.get_value() == "*" || current_token.get_value() == "/") {
+                        left_operand_float = stod(expression[i - 1].get_value());
+                        right_operand_float = stod(expression[i + 1].get_value());
+
+                        expression.erase(
+                            expression.begin() + i - 1, expression.begin() + i + 2
+                        );
+                        Token ans;
+                        if (current_token.get_value() == "*") {
+                            ans.set_type("float");
+                            ans.set_value(to_string(left_operand_float * right_operand_float));
+                            //cout << "AJADGKJA" << endl;
+                            //show_tokens(expression);
+                           //ans("float", to_string(left_operand_float * right_operand_float));
+                        }
+                        else {
+                            ans.set_type("float");
+                            ans.set_value(to_string(left_operand_float / right_operand_float));
+                            //ans("float", to_string(left_operand_float / right_operand_float));
+                        }
+                        expression.insert(
+                            expression.begin() + i - 1, ans
+                        );
+                        i -= 2;
+                    }
+                    //cout << "___NEW___ pr" << endl;
+                    //show_tokens(expression);
+                    i++;
                 }
 
-                i++;
+                i = 0;
+                // FOr + and -
+                while (i < expression.size()) {
+                    current_token = expression[i];
+                    double left_operand_float, right_operand_float;
+                    if (current_token.get_value() == "+" || current_token.get_value() == "-") {
+                        left_operand_float = stod(expression[i - 1].get_value());
+                        right_operand_float = stod(expression[i + 1].get_value());
+
+                        expression.erase(
+                            expression.begin() + i - 1, expression.begin() + i + 2
+                        );
+                        Token ans;
+                        if (current_token.get_value() == "+") {
+                            ans.set_type("float");
+                            ans.set_value(to_string(left_operand_float + right_operand_float));
+                           //ans("float", to_string(left_operand_float * right_operand_float));
+                        }
+                        else {
+                            ans.set_type("float");
+                            ans.set_value(to_string(left_operand_float - right_operand_float));
+                            //ans("float", to_string(left_operand_float / right_operand_float));
+                        }
+                        //cout << ans.repr()<< endl << i << endl;
+                        expression.insert(
+                            expression.begin() + i - 1, ans
+                        );
+                        //show_tokens(expression);
+                        i -= 1;
+                    }
+                    i++;
+                    //cout << "___NEW___" << endl;
+                    //show_tokens(expression);
+                }
+
             }
-            return "0";
+            
+            return expression[0];
         }
 };
 
@@ -211,7 +295,7 @@ int main() {
     nova.read("program.nv");
     vector<Token> n = nova.tokenize_line(0);
 
-    nova.evaluate(n);
+    cout << nova.evaluate(n).repr() << endl;
     
     return 0;
 }
