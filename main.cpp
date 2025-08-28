@@ -17,7 +17,7 @@ class Interpreter{
 
     vector<string> keywords = 
     {
-        "int", "float", "str", "for", "loop", "if", "then", "endif", "else", "elif"
+        "num", "str", "for", "loop", "if", "then", "endif", "else", "elif"
     };
 
     public:
@@ -37,15 +37,11 @@ class Interpreter{
         }
 
         void show_code_lines() {
-            for(int i = 0; i < code_lines.size(); i++) {
-                cout << code_lines[i] << endl;
-            }
+            for(int i = 0; i < code_lines.size(); i++) cout << code_lines[i] << endl;
         }
 
         void show_tokens(vector<Token> tokens) {
-            for (int i = 0; i < tokens.size(); i++) {
-                cout << tokens[i].repr() << endl << endl;
-            }
+            for (int i = 0; i < tokens.size(); i++) cout << tokens[i].repr() << endl << endl;
         }
 
         // returns all the tokens as objects of class 'Token' in a given line of code
@@ -93,8 +89,17 @@ class Interpreter{
                         j++;
                     }
                     
-                    if (has_decimal) tokens.emplace_back("float", current_token);
-                    else tokens.emplace_back("integer", current_token);
+                    if (tokens[tokens.size() - 1].get_value() == "-" && tokens[tokens.size() - 2].get_type() != "num") {
+                        tokens.erase(
+                            tokens.begin() + tokens.size() - 1
+                        );
+                        if (has_decimal) tokens.emplace_back("num", "-" + current_token);
+                        else tokens.emplace_back("num", "-" + current_token + ".000000");
+                    }
+                    else {
+                        if (has_decimal) tokens.emplace_back("num", current_token);
+                        else tokens.emplace_back("num", current_token + ".000000");
+                    }
 
                     i = j - 1;
                 }
@@ -178,6 +183,7 @@ class Interpreter{
         }
 
         Token evaluate(vector<Token> expression, int depth = 0) {
+            cout << "Depth: " << depth << endl;
             bool has_paranthesis = false;
             int i = 0;
             Token current_token;
@@ -217,7 +223,7 @@ class Interpreter{
                 //Highest Priority for * and /
                 while (i < expression.size()) {
                     current_token = expression[i];
-                    double left_operand_float, right_operand_float;
+                    float left_operand_float, right_operand_float;
                     if (current_token.get_value() == "*" || current_token.get_value() == "/") {
                         left_operand_float = stod(expression[i - 1].get_value());
                         right_operand_float = stod(expression[i + 1].get_value());
@@ -227,16 +233,16 @@ class Interpreter{
                         );
                         Token ans;
                         if (current_token.get_value() == "*") {
-                            ans.set_type("float");
+                            ans.set_type("num");
                             ans.set_value(to_string(left_operand_float * right_operand_float));
                             //cout << "AJADGKJA" << endl;
                             //show_tokens(expression);
-                           //ans("float", to_string(left_operand_float * right_operand_float));
+                           //ans("num", to_string(left_operand_float * right_operand_float));
                         }
                         else {
-                            ans.set_type("float");
+                            ans.set_type("num");
                             ans.set_value(to_string(left_operand_float / right_operand_float));
-                            //ans("float", to_string(left_operand_float / right_operand_float));
+                            //ans("num", to_string(left_operand_float / right_operand_float));
                         }
                         expression.insert(
                             expression.begin() + i - 1, ans
@@ -254,6 +260,8 @@ class Interpreter{
                     current_token = expression[i];
                     double left_operand_float, right_operand_float;
                     if (current_token.get_value() == "+" || current_token.get_value() == "-") {
+                        show_tokens(expression);
+                        cout << expression[i + 1].get_value()<< endl << expression[i - 1].get_value()<<endl;
                         left_operand_float = stod(expression[i - 1].get_value());
                         right_operand_float = stod(expression[i + 1].get_value());
 
@@ -262,14 +270,14 @@ class Interpreter{
                         );
                         Token ans;
                         if (current_token.get_value() == "+") {
-                            ans.set_type("float");
+                            ans.set_type("num");
                             ans.set_value(to_string(left_operand_float + right_operand_float));
-                           //ans("float", to_string(left_operand_float * right_operand_float));
+                           //ans("num", to_string(left_operand_float * right_operand_float));
                         }
                         else {
-                            ans.set_type("float");
+                            ans.set_type("num");
                             ans.set_value(to_string(left_operand_float - right_operand_float));
-                            //ans("float", to_string(left_operand_float / right_operand_float));
+                            //ans("num", to_string(left_operand_float / right_operand_float));
                         }
                         //cout << ans.repr()<< endl << i << endl;
                         expression.insert(
@@ -282,9 +290,7 @@ class Interpreter{
                     //cout << "___NEW___" << endl;
                     //show_tokens(expression);
                 }
-
             }
-            
             return expression[0];
         }
 };
@@ -294,7 +300,7 @@ int main() {
     Interpreter nova;
     nova.read("program.nv");
     vector<Token> n = nova.tokenize_line(0);
-
+    nova.show_tokens(n);
     cout << nova.evaluate(n).repr() << endl;
     
     return 0;

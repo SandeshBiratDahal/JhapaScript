@@ -1,7 +1,6 @@
 #include<iostream>
 using namespace std;
 
-
 // Just a place to store tokens for tokenization
 class Token{
     string type;
@@ -35,5 +34,9 @@ class Token{
 
     string repr() {
         return "<Token \ntype=" + type + ",\nvalue=" + value + ">";
+    }
+
+    void prepr() {
+        cout << repr();
     }
 };
