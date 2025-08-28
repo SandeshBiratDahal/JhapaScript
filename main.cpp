@@ -5,10 +5,15 @@
 
 #include "tokens.cpp"
 #include "utilities.cpp"
+#include "variables_storage.cpp"
 
 using namespace std;
 
-class Interpreter{
+//DATA TYPES
+string NUM = "num", STR = "str";
+
+// USed to translate from high level syntax to assembly-like code
+class CodeTranslator{
     string raw_code;
     vector<string> code_lines;
 
@@ -19,6 +24,8 @@ class Interpreter{
     {
         "num", "str", "for", "loop", "if", "then", "endif", "else", "elif"
     };
+
+    VariableStorage vars;
 
     public:
         // Reads the source code and divides it into different lines
@@ -89,16 +96,16 @@ class Interpreter{
                         j++;
                     }
                     
-                    if (tokens[tokens.size() - 1].get_value() == "-" && tokens[tokens.size() - 2].get_type() != "num") {
+                    if (tokens[tokens.size() - 1].get_value() == "-" && tokens[tokens.size() - 2].get_type() != NUM) {
                         tokens.erase(
                             tokens.begin() + tokens.size() - 1
                         );
-                        if (has_decimal) tokens.emplace_back("num", "-" + current_token);
-                        else tokens.emplace_back("num", "-" + current_token + ".000000");
+                        if (has_decimal) tokens.emplace_back(NUM, "-" + current_token);
+                        else tokens.emplace_back(NUM, "-" + current_token + ".000000");
                     }
                     else {
-                        if (has_decimal) tokens.emplace_back("num", current_token);
-                        else tokens.emplace_back("num", current_token + ".000000");
+                        if (has_decimal) tokens.emplace_back(NUM, current_token);
+                        else tokens.emplace_back(NUM, current_token + ".000000");
                     }
 
                     i = j - 1;
@@ -110,7 +117,7 @@ class Interpreter{
                         current_token += line[j];
                         j++;
                     }
-                    tokens.emplace_back("string", current_token);
+                    tokens.emplace_back(STR, current_token);
 
                     i = j;
                 }
@@ -183,7 +190,7 @@ class Interpreter{
         }
 
         Token evaluate(vector<Token> expression, int depth = 0) {
-            cout << "Depth: " << depth << endl;
+            //cout << "Depth: " << depth << endl;
             bool has_paranthesis = false;
             int i = 0;
             Token current_token;
@@ -233,16 +240,16 @@ class Interpreter{
                         );
                         Token ans;
                         if (current_token.get_value() == "*") {
-                            ans.set_type("num");
+                            ans.set_type(NUM);
                             ans.set_value(to_string(left_operand_float * right_operand_float));
                             //cout << "AJADGKJA" << endl;
                             //show_tokens(expression);
-                           //ans("num", to_string(left_operand_float * right_operand_float));
+                           //ans(NUM, to_string(left_operand_float * right_operand_float));
                         }
                         else {
-                            ans.set_type("num");
+                            ans.set_type(NUM);
                             ans.set_value(to_string(left_operand_float / right_operand_float));
-                            //ans("num", to_string(left_operand_float / right_operand_float));
+                            //ans(NUM, to_string(left_operand_float / right_operand_float));
                         }
                         expression.insert(
                             expression.begin() + i - 1, ans
@@ -260,8 +267,8 @@ class Interpreter{
                     current_token = expression[i];
                     double left_operand_float, right_operand_float;
                     if (current_token.get_value() == "+" || current_token.get_value() == "-") {
-                        show_tokens(expression);
-                        cout << expression[i + 1].get_value()<< endl << expression[i - 1].get_value()<<endl;
+                        //show_tokens(expression);
+                        //cout << expression[i + 1].get_value()<< endl << expression[i - 1].get_value()<<endl;
                         left_operand_float = stod(expression[i - 1].get_value());
                         right_operand_float = stod(expression[i + 1].get_value());
 
@@ -270,14 +277,14 @@ class Interpreter{
                         );
                         Token ans;
                         if (current_token.get_value() == "+") {
-                            ans.set_type("num");
+                            ans.set_type(NUM);
                             ans.set_value(to_string(left_operand_float + right_operand_float));
-                           //ans("num", to_string(left_operand_float * right_operand_float));
+                           //ans(NUM, to_string(left_operand_float * right_operand_float));
                         }
                         else {
-                            ans.set_type("num");
+                            ans.set_type(NUM);
                             ans.set_value(to_string(left_operand_float - right_operand_float));
-                            //ans("num", to_string(left_operand_float / right_operand_float));
+                            //ans(NUM, to_string(left_operand_float / right_operand_float));
                         }
                         //cout << ans.repr()<< endl << i << endl;
                         expression.insert(
@@ -297,11 +304,10 @@ class Interpreter{
 
 
 int main() {
-    Interpreter nova;
-    nova.read("program.nv");
-    vector<Token> n = nova.tokenize_line(0);
-    nova.show_tokens(n);
-    cout << nova.evaluate(n).repr() << endl;
-    
+    CodeTranslator translate;
+    translate.read("program.nv");
+    vector<Token> n = translate.tokenize_line(0);
+    translate.show_tokens(n);
+    //cout << translate.evaluate(n).repr() << endl;
     return 0;
 }
