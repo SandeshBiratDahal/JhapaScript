@@ -1,6 +1,7 @@
 #include<iostream>
 #include<fstream>
 #include<vector>
+#include<map>
 #include<string>
 
 #include "tokens.cpp"
@@ -12,10 +13,12 @@ using namespace std;
 //DATA TYPES
 string NUM = "num", STR = "str";
 
-// USed to translate from high level syntax to assembly-like code
-class CodeTranslator{
+// Used to translate from high level syntax to assembly-like code
+class Interpreter{
     string raw_code;
     vector<string> code_lines;
+
+    vector<string> ass_code;
 
     string alphas = "qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM_",
     nums = "1234567890", specials = "!@#$%^&*()+{}[]:;'<>,.?/|=-~`", space = " ";
@@ -52,11 +55,10 @@ class CodeTranslator{
         }
 
         // returns all the tokens as objects of class 'Token' in a given line of code
-        vector<Token> tokenize_line(int index) {
+        vector<Token> tokenize_line(string line) {
 
             vector<Token> tokens;
-            if (index >= code_lines.size()) return tokens;
-            string line = code_lines[index], current_token;
+            string current_token;
             int i = 0, j;
 
             while (i < line.length()) {
@@ -96,7 +98,7 @@ class CodeTranslator{
                         j++;
                     }
                     
-                    if (tokens[tokens.size() - 1].get_value() == "-" && tokens[tokens.size() - 2].get_type() != NUM) {
+                    if (tokens.size() >= 2 && tokens[tokens.size() - 1].get_value() == "-" && tokens[tokens.size() - 2].get_type() != NUM) {
                         tokens.erase(
                             tokens.begin() + tokens.size() - 1
                         );
@@ -300,14 +302,37 @@ class CodeTranslator{
             }
             return expression[0];
         }
+
+        void interpret() {
+            ifstream in("program.nv");
+            string line;
+            while(getline(in, line)) ass_code.push_back(line);
+            
+            int line_no = 0, sub_line_no = 0;
+
+            while (true) {
+                line = ass_code[line_no];
+
+                if (line == "ext") break;
+
+                else if (line == "prt") {
+                    sub_line_no = line_no + 1;
+                    while (ass_code[sub_line_no] != ";") {
+                        cout << evaluate(tokenize_line(ass_code[sub_line_no])).get_value();
+                        sub_line_no++;
+                    }
+                    line_no = sub_line_no - 1;
+                }
+
+                line_no++;
+            }
+        }
 };
 
-
 int main() {
-    CodeTranslator translate;
-    translate.read("program.nv");
-    vector<Token> n = translate.tokenize_line(0);
-    translate.show_tokens(n);
+    Interpreter nova;
+    nova.read("program.nv");
+    nova.interpret();
     //cout << translate.evaluate(n).repr() << endl;
     return 0;
 }
