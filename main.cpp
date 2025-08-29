@@ -186,6 +186,14 @@ class Interpreter{
                     tokens.emplace_back("rightparanthesis", ")");
                 }
 
+                else if (letter == '.') {
+                    if (line[i + 1] == '.') {
+                        tokens.emplace_back("operator:concat", "..");
+                        i++;
+                    }
+                    else tokens.emplace_back("operator:dot", ".");
+                }
+
                 i++;
             }
             return tokens;
@@ -256,7 +264,26 @@ class Interpreter{
                         expression.insert(
                             expression.begin() + i - 1, ans
                         );
-                        i -= 2;
+                        i -= 1;
+                    }
+                    else if (current_token.get_value() == "+" && expression[i - 1].get_type() == "str" && expression[i + 1].get_type() == "str") {
+                        string left_operand, right_operand;
+                        left_operand = (expression[i - 1].get_value());
+                        right_operand = (expression[i + 1].get_value());
+
+                        expression.erase(
+                            expression.begin() + i - 1, expression.begin() + i + 2
+                        );
+
+                        Token ans;
+
+                        ans.set_type(STR);
+                        ans.set_value(left_operand + right_operand);
+
+                        expression.insert(
+                            expression.begin() + i - 1, ans
+                        );
+                        i -= 1;
                     }
                     //cout << "___NEW___ pr" << endl;
                     //show_tokens(expression);
@@ -299,6 +326,7 @@ class Interpreter{
                     //cout << "___NEW___" << endl;
                     //show_tokens(expression);
                 }
+
             }
             return expression[0];
         }
@@ -310,7 +338,7 @@ class Interpreter{
             
             int line_no = 0, sub_line_no = 0;
 
-            while (true) {
+            while (line_no < ass_code.size() && line_no >= 0) {
                 line = ass_code[line_no];
 
                 if (line == "ext") break;
@@ -321,8 +349,43 @@ class Interpreter{
                         cout << evaluate(tokenize_line(ass_code[sub_line_no])).get_value();
                         sub_line_no++;
                     }
-                    line_no = sub_line_no - 1;
+                    line_no = sub_line_no;
                 }
+
+                else if (line == "num") {
+                    sub_line_no = line_no + 1;
+                    while (ass_code[sub_line_no] != ";") {
+                        vars.store(ass_code[sub_line_no], NUM, "0");
+                        sub_line_no++;
+                    }
+                    line_no = sub_line_no;
+                }
+
+                else if (line == "str") {
+                    sub_line_no = line_no + 1;
+                    while (ass_code[sub_line_no] != ";") {
+                        vars.store(ass_code[sub_line_no], STR, "");
+                        sub_line_no++;
+                    }
+                    line_no = sub_line_no;
+                }
+
+                else if (line == "ld") {
+                    sub_line_no = line_no + 1;
+                    while (ass_code[sub_line_no] != ";") {
+                        vars.edit(
+                            ass_code[sub_line_no],
+                            evaluate(tokenize_line(ass_code[sub_line_no + 1])).get_value()
+                        );
+                        sub_line_no += 2;
+                    }
+                    line_no = sub_line_no;
+                    vars.show_all();
+                }
+
+                else if (line == "nl") cout << endl;
+
+                else if (line == "goto") line_no = stod(ass_code[line_no + 1]);
 
                 line_no++;
             }

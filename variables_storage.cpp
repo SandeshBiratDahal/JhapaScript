@@ -21,6 +21,10 @@ class Variable{
         string get_data_type() {
             return data_type;
         }
+
+        string set_value(string value) {
+            this -> value = value;
+        }
 };
 
 class VariableStorage{
@@ -36,7 +40,13 @@ class VariableStorage{
             return storage[identifier].get_value();
         }
 
-        string operator [] (string identifier) {
-            return storage[identifier].get_value();
+        void show_all() {
+            for (auto &pair : storage) {
+                cout << pair.first << " -> " << pair.second.get_value() << endl;
+            }
+        }
+
+        void edit(string identifier, string value) {
+            storage[identifier].set_value(value);
         }
 };

@@ -21,6 +21,10 @@ class Token{
     }
 
     string get_value() {
+        if (type == "num") {
+            if ((int)stod(value) == stod(value)) return to_string(((int)(stod(value))));
+            else return value;
+        }
         return value;
     }
 
