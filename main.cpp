@@ -55,8 +55,8 @@ class Interpreter{
         }
 
         // returns all the tokens as objects of class 'Token' in a given line of code
-        vector<Token> tokenize_line(string line) {
-
+        vector<Token> tokenize_line(string line, int index = -1) {
+            if (index >= 0) line = code_lines[index];
             vector<Token> tokens;
             string current_token;
             int i = 0, j;
@@ -236,7 +236,54 @@ class Interpreter{
             if (!has_paranthesis) {
                 //show_tokens(expression);
                 i = 0;
+                int j = 0;
+                //WORKED FIRST TRY WTFF
+                while (i < expression.size()) {
+                    current_token = expression[i];
+                    if (current_token.get_type() == "identifier") {
+                        if (i + 1 >= expression.size()) {
+                            Variable var = vars.get(current_token.get_value());
+                            expression[i] = Token(var.get_data_type(), var.get_value());
+                        }
+                        else if (expression[i + 1].get_value() != "=") {
+                            Variable var = vars.get(current_token.get_value());
+                            expression[i] = Token(var.get_data_type(), var.get_value());
+                        }
+                    }
+                    //show_tokens(expression);
+                    i++;
+                }
 
+                i = 0;
+                //For assignment operator
+                // I AM GOING TO DIE FIXING THIS AAAAAAAAAAAAAAAAAAAAA
+                while (i < expression.size()) {
+                    current_token = expression[i];
+                    if (current_token.get_value() == "=" && expression[i - 1].get_type() == "identifier") {
+                        j = i + 1;
+                        //show_tokens(expression);
+                        vector<Token> sub_tokens;
+                        while (j < expression.size() && expression[j].get_value() != ","){
+                            sub_tokens.push_back(expression[j]);
+                            j++;
+                        }
+                        //show_tokens(sub_tokens);
+                        //cout << evaluate(sub_tokens).get_value();
+                        vars.get(expression[i - 1].get_value()).set_value(
+                            evaluate(sub_tokens).get_value()
+                        );
+                        //vars.show_all();
+                        expression.erase(
+                            expression.begin() + i - 1, expression.begin()  + j
+                        );
+                        //show_tokens(expression);
+                        //vars.show_all();  
+                        i = i - 1;                  
+                    }
+                    i++;
+                    //cout << i << endl;
+                }
+                i = 0;
                 //Highest Priority for * and /
                 while (i < expression.size()) {
                     current_token = expression[i];
@@ -328,6 +375,7 @@ class Interpreter{
                 }
 
             }
+            if (expression.size() == 0) expression.emplace_back("num", "0.000000");
             return expression[0];
         }
 
@@ -380,6 +428,37 @@ class Interpreter{
                         sub_line_no += 2;
                     }
                     line_no = sub_line_no;
+                }
+
+                else if (line == "ipt") {
+                    sub_line_no = line_no + 1;
+                    while (ass_code[sub_line_no] != ";") {
+                        Variable var = vars.get(ass_code[sub_line_no]);
+
+                        if (var.get_data_type() == NUM) {
+                            float num;
+                            cin >> num;
+                            var.set_value(to_string(num));
+                        }
+
+                        else if (var.get_data_type() == STR) {
+                            string str;
+                            cin >> str;
+                            var.set_value(str);
+                        }
+                    }
+                }
+
+                else if (line == "expr") {
+                    sub_line_no = line_no + 1;
+                    while (ass_code[sub_line_no] != ";") {
+                        //cout << ass_code[sub_line_no]<<endl;
+                        //vars.show_all();
+                        evaluate(tokenize_line(ass_code[sub_line_no])).get_value();
+                        sub_line_no++;
+                        //cout << sub_line_no << endl;
+                    }
+                    line_no = sub_line_no;
                     vars.show_all();
                 }
 
@@ -390,11 +469,19 @@ class Interpreter{
                 line_no++;
             }
         }
+
+        VariableStorage get_vars() {
+            return vars;
+        }
 };
 
 int main() {
     Interpreter nova;
     nova.read("program.nv");
+    //vector<Token> n = nova.tokenize_line("", 0);
+    //nova.show_tokens(n);
+    //nova.get_vars().show_all();
+    //cout << nova.evaluate(n).repr();
     nova.interpret();
     //cout << translate.evaluate(n).repr() << endl;
     return 0;

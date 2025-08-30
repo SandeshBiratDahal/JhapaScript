@@ -49,4 +49,8 @@ class VariableStorage{
         void edit(string identifier, string value) {
             storage[identifier].set_value(value);
         }
+
+        Variable& get(string identifier) {
+            return storage[identifier];
+        }
 };
