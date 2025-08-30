@@ -25,7 +25,7 @@ class Interpreter{
 
     vector<string> keywords = 
     {
-        "num", "str", "for", "loop", "if", "then", "endif", "else", "elif"
+        "num", "str", "for", "loop", "if", "then", "endif", "else", "swaraj", "print", "input"
     };
 
     VariableStorage vars;
@@ -247,6 +247,8 @@ class Interpreter{
                         }
                         else if (expression[i + 1].get_value() != "=") {
                             Variable var = vars.get(current_token.get_value());
+
+                            //NEED TO ADD "" if the variable is a string
                             expression[i] = Token(var.get_data_type(), var.get_value());
                         }
                     }
@@ -274,8 +276,9 @@ class Interpreter{
                         );
                         //vars.show_all();
                         expression.erase(
-                            expression.begin() + i - 1, expression.begin()  + j
+                            expression.begin() + i - 1, expression.begin() + j
                         );
+                        //cout << "__NEW__" << endl;
                         //show_tokens(expression);
                         //vars.show_all();  
                         i = i - 1;                  
@@ -433,12 +436,13 @@ class Interpreter{
                 else if (line == "ipt") {
                     sub_line_no = line_no + 1;
                     while (ass_code[sub_line_no] != ";") {
-                        Variable var = vars.get(ass_code[sub_line_no]);
+                        Variable &var = vars.get(ass_code[sub_line_no]);
 
                         if (var.get_data_type() == NUM) {
                             float num;
                             cin >> num;
                             var.set_value(to_string(num));
+                            //vars.show_all();
                         }
 
                         else if (var.get_data_type() == STR) {
@@ -446,7 +450,9 @@ class Interpreter{
                             cin >> str;
                             var.set_value(str);
                         }
+                        sub_line_no++;
                     }
+                    line_no = sub_line_no;
                 }
 
                 else if (line == "expr") {
@@ -454,12 +460,13 @@ class Interpreter{
                     while (ass_code[sub_line_no] != ";") {
                         //cout << ass_code[sub_line_no]<<endl;
                         //vars.show_all();
+                        //show_tokens(tokenize_line(ass_code[sub_line_no]));
                         evaluate(tokenize_line(ass_code[sub_line_no])).get_value();
                         sub_line_no++;
                         //cout << sub_line_no << endl;
                     }
                     line_no = sub_line_no;
-                    vars.show_all();
+                    //vars.show_all();
                 }
 
                 else if (line == "nl") cout << endl;
@@ -470,6 +477,71 @@ class Interpreter{
             }
         }
 
+        vector<string> translate_to_ass_code() {
+            vector<string> ass_code;
+
+            int line_no = 0, sub_line_no = 0;
+
+            while (line_no < code_lines.size()) {
+                vector<Token> tokens = tokenize_line("", line_no);
+                string line = code_lines[line_no], type = tokens[0].get_type(), value = tokens[0].get_value();
+                string current_expression = "";
+
+                if ((type == "keyword" && value == "print") || type != "keyword") {
+
+                    if (type == "keyword") ass_code.push_back("prt");
+                    else ass_code.push_back("expr");
+                    int i = 0;
+
+                    for (i = type == "keyword" ? 1 : 0; i < tokens.size(); i++) {
+                        if (tokens[i].get_value() == "," && tokens[i].get_type() == "operator:comma"){
+                            ass_code.push_back(current_expression);
+                            current_expression = "";
+                            continue;
+                        }
+                        if (tokens[i].get_type() == STR) {
+                            current_expression += "\""+ tokens[i].get_value() + "\"" + " ";
+                        }
+                        else {
+                            current_expression += tokens[i].get_value() + " ";
+                        }
+                    }
+
+                    if (current_expression != "") {
+                        ass_code.push_back(current_expression);
+                        ass_code.push_back(";");
+                    }
+                }
+
+                else if (type == "keyword" && value == "input") {
+                    //show_tokens(tokens);
+                    ass_code.push_back("ipt");
+
+                    for (int i = 1; i < tokens.size(); i++) {
+                        if (tokens[i].get_type() == "operator:comma" && tokens[i].get_value() == ",") {
+                            ass_code.push_back(current_expression);
+                            current_expression = "";
+                            continue;
+                        }
+
+                        if (tokens[i].get_type() == "identifier") {
+                            current_expression += tokens[i].get_value() + " ";
+                        }  
+                    }
+                    ass_code.push_back(current_expression);
+                    ass_code.push_back(";");
+                }
+
+                line_no++;
+            }
+
+            for (int i = 0; i < ass_code.size(); i++) {
+                cout << ass_code[i] << endl;
+            }
+
+            return ass_code;
+        }
+
         VariableStorage get_vars() {
             return vars;
         }
@@ -478,11 +550,12 @@ class Interpreter{
 int main() {
     Interpreter nova;
     nova.read("program.nv");
+    nova.translate_to_ass_code();
     //vector<Token> n = nova.tokenize_line("", 0);
     //nova.show_tokens(n);
     //nova.get_vars().show_all();
     //cout << nova.evaluate(n).repr();
-    nova.interpret();
+    //nova.interpret();
     //cout << translate.evaluate(n).repr() << endl;
     return 0;
 }
