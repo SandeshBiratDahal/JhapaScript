@@ -276,7 +276,7 @@ class Interpreter{
                         );
                         //vars.show_all();
                         expression.erase(
-                            expression.begin() + i - 1, expression.begin() + j
+                            expression.begin() + i - 1, expression.begin() + j - 1
                         );
                         //cout << "__NEW__" << endl;
                         //show_tokens(expression);
@@ -382,10 +382,10 @@ class Interpreter{
             return expression[0];
         }
 
-        void interpret() {
-            ifstream in("program.nv");
+        void interpret(vector<string> ass_code) {
+            //ifstream in("program.nv");
             string line;
-            while(getline(in, line)) ass_code.push_back(line);
+            //while(getline(in, line)) ass_code.push_back(line);
             
             int line_no = 0, sub_line_no = 0;
 
@@ -435,20 +435,23 @@ class Interpreter{
 
                 else if (line == "ipt") {
                     sub_line_no = line_no + 1;
+                    //vars.show_all();
                     while (ass_code[sub_line_no] != ";") {
                         Variable &var = vars.get(ass_code[sub_line_no]);
-
+                        //cout << var.get_value();
                         if (var.get_data_type() == NUM) {
                             float num;
                             cin >> num;
-                            var.set_value(to_string(num));
+                            //vars.show_all();
+                            vars.edit(ass_code[sub_line_no], to_string(num));
+                            //var.set_value(to_string(num));
                             //vars.show_all();
                         }
 
                         else if (var.get_data_type() == STR) {
                             string str;
                             cin >> str;
-                            var.set_value(str);
+                            vars.edit(ass_code[sub_line_no], str);
                         }
                         sub_line_no++;
                     }
@@ -479,7 +482,6 @@ class Interpreter{
 
         vector<string> translate_to_ass_code() {
             vector<string> ass_code;
-
             int line_no = 0, sub_line_no = 0;
 
             while (line_no < code_lines.size()) {
@@ -525,18 +527,79 @@ class Interpreter{
                         }
 
                         if (tokens[i].get_type() == "identifier") {
-                            current_expression += tokens[i].get_value() + " ";
+                            current_expression += tokens[i].get_value();
                         }  
                     }
                     ass_code.push_back(current_expression);
                     ass_code.push_back(";");
                 }
 
+                else if (type == "keyword" && (value == STR || value == NUM)) {
+                    tokens.emplace_back("operator:comma", ",");
+
+                    ass_code.push_back(value);
+                    //show_tokens(tokens);
+                    vector<string> declared;
+                    vector<string> initialized;
+                    vector<string> expressions;
+
+                    for (int i = 1; i < tokens.size(); i++) {
+                        if (tokens[i].get_type() == "identifier" && tokens[i + 1].get_value() != "=") {
+                            declared.push_back(tokens[i].get_value());
+                        }
+                        else if(tokens[i].get_type() == "identifier" && tokens[i + 1].get_value() == "=") {
+                            declared.push_back(tokens[i].get_value());
+                            initialized.push_back(tokens[i].get_value());
+                            sub_line_no = i + 2;
+                            current_expression = "";
+                            while (tokens[sub_line_no].get_type() != "operator:comma") {
+                                if (tokens[sub_line_no].get_type() != STR) {
+                                    current_expression += tokens[sub_line_no].get_value() + " ";
+                                }
+                                else if (tokens[sub_line_no].get_type() == STR){
+                                    current_expression += "\"" + tokens[sub_line_no].get_value() + "\" ";
+                                }
+                                sub_line_no++;
+                            }
+                            expressions.push_back(current_expression);
+                            current_expression = "";
+                            i = sub_line_no;
+                        }
+                    }
+                    for (int i = 0; i < declared.size(); i++) {
+                        ass_code.push_back(declared[i]);
+                    }
+                    ass_code.push_back(";");
+                    
+
+                    for (int i = 0; i < initialized.size(); i++) {
+                        //cout << expressions[i];
+                        ass_code.push_back("expr");
+                        if (value == NUM)
+                            ass_code.push_back(
+                                initialized[i] + " = " + expressions[i]
+                            );
+                        else
+                        {
+                            if (!expressions[i].empty()) {
+                                expressions[i].pop_back();
+                            }
+                            //cout << expressions[i];
+                            ass_code.push_back(
+                                initialized[i] + " = " + expressions[i]
+                            );
+                        }
+                        ass_code.push_back(";");
+                    }
+                }
                 line_no++;
             }
+            ass_code.push_back("ext");
+            ass_code.push_back(";");
 
+            ofstream out("program.ac");
             for (int i = 0; i < ass_code.size(); i++) {
-                cout << ass_code[i] << endl;
+                out << ass_code[i] << endl;
             }
 
             return ass_code;
@@ -550,7 +613,10 @@ class Interpreter{
 int main() {
     Interpreter nova;
     nova.read("program.nv");
-    nova.translate_to_ass_code();
+    vector<string> ass_code = nova.translate_to_ass_code();
+    nova.interpret(ass_code);
+    //nova.get_vars().show_all();
+    //nova.get_vars().show_all();
     //vector<Token> n = nova.tokenize_line("", 0);
     //nova.show_tokens(n);
     //nova.get_vars().show_all();
