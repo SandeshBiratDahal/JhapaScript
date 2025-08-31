@@ -455,6 +455,7 @@ class Interpreter{
                     double left_operand_float, right_operand_float;
                     string right_operand_string, left_operand_string;
                     if (current_token.get_value() == "==" || current_token.get_value() == "!=") {
+                        //cout << "New" << endl;
                         //show_tokens(expression);
                         //cout << expression[i + 1].get_value()<< endl << expression[i - 1].get_value()<<endl;
                         if (expression[i - 1].get_type() == NUM && expression[i + 1].get_type() == NUM) {
@@ -466,9 +467,6 @@ class Interpreter{
                             right_operand_string = expression[i + 1].get_value();
                         }
 
-                        expression.erase(
-                            expression.begin() + i - 1, expression.begin() + i + 2
-                        );
                         Token ans;
                         if (current_token.get_value() == "==") {
                             ans.set_type(NUM);
@@ -486,12 +484,16 @@ class Interpreter{
                                 ans.set_value(to_string((int)(left_operand_string != right_operand_string)));
                             //ans(NUM, to_string(left_operand_float / right_operand_float));
                         }
+                        expression.erase(
+                            expression.begin() + i - 1, expression.begin() + i + 2
+                        );
                         //cout << ans.repr()<< endl << i << endl;
                         expression.insert(
                             expression.begin() + i - 1, ans
                         );
                         //show_tokens(expression);
                         i -= 1;
+                        //show_tokens(expression);
                     }
                     i++;
                 }
@@ -508,8 +510,10 @@ class Interpreter{
             //while(getline(in, line)) ass_code.push_back(line);
             
             int line_no = 0, sub_line_no = 0;
+            int no_of_steps = 0;
 
             while (line_no < ass_code.size() && line_no >= 0) {
+                no_of_steps++;
                 line = ass_code[line_no];
 
                 if (line == "ext") break;
@@ -593,9 +597,12 @@ class Interpreter{
                 }
 
                 else if (line == "if") {
+                    //show_tokens(tokenize_line(ass_code[line_no + 1]));
                     if (evaluate(tokenize_line(ass_code[line_no + 1])).get_value() == "0") {
                         line_no = stod(ass_code[line_no + 2]) - 1;
-                    } 
+                    } else {
+                        line_no += 3;
+                    }
                 }
 
                 else if (line == "nl") cout << endl;
@@ -604,6 +611,8 @@ class Interpreter{
 
                 line_no++;
             }
+            
+            //cout << endl << "Number of steps: " << no_of_steps << endl;
         }
 
         vector<string> translate_to_ass_code() {
@@ -755,6 +764,10 @@ class Interpreter{
 
             ofstream out("program.ac");
             for (int i = 0; i < ass_code.size(); i++) {
+                if (i == ass_code.size() - 1) {
+                    out << ass_code[i];
+                    break;
+                }
                 out << ass_code[i] << endl;
             }
 
