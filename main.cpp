@@ -3,6 +3,7 @@
 #include<vector>
 #include<map>
 #include<string>
+#include<conio.h>
 
 #include "tokens.cpp"
 #include "utilities.cpp"
@@ -194,6 +195,10 @@ class Interpreter{
                     else tokens.emplace_back("operator:dot", ".");
                 }
 
+                else if (letter == '%') {
+                    tokens.emplace_back("operator:modulus", "%");
+                }
+
                 i++;
             }
             return tokens;
@@ -377,12 +382,106 @@ class Interpreter{
                     //show_tokens(expression);
                 }
 
+                i = 0;
+                // for <,>, <=, >=
+                while (i < expression.size()) {
+                    current_token = expression[i];
+                    double left_operand_float, right_operand_float;
+                    if (current_token.get_value() == "<" || current_token.get_value() == "<=" || current_token.get_value() == ">" || current_token.get_value() == ">=") {
+                        //show_tokens(expression);
+                        //cout << expression[i + 1].get_value()<< endl << expression[i - 1].get_value()<<endl;
+                        left_operand_float = stod(expression[i - 1].get_value());
+                        right_operand_float = stod(expression[i + 1].get_value());
+
+                        expression.erase(
+                            expression.begin() + i - 1, expression.begin() + i + 2
+                        );
+                        Token ans;
+                        if (current_token.get_value() == "<") {
+                            ans.set_type(NUM);
+                            ans.set_value(to_string((int)(left_operand_float < right_operand_float)));
+                           //ans(NUM, to_string(left_operand_float * right_operand_float));
+                        }
+                        else if (current_token.get_value() == "<=") {
+                            ans.set_type(NUM);
+                            ans.set_value(to_string((int)(left_operand_float <= right_operand_float)));
+                            //ans(NUM, to_string(left_operand_float / right_operand_float));
+                        }
+                        else if (current_token.get_value() == ">") {
+                            ans.set_type(NUM);
+                            ans.set_value(to_string((int)(left_operand_float > right_operand_float)));
+                            //ans(NUM, to_string(left_operand_float / right_operand_float));
+                        }
+                        else if (current_token.get_value() == ">=") {
+                            ans.set_type(NUM);
+                            ans.set_value(to_string((int)(left_operand_float >= right_operand_float)));
+                            //ans(NUM, to_string(left_operand_float / right_operand_float));
+                        }
+                        //cout << ans.repr()<< endl << i << endl;
+                        expression.insert(
+                            expression.begin() + i - 1, ans
+                        );
+                        //show_tokens(expression);
+                        i -= 1;
+                    }
+                    i++;
+                }
+
+                i = 0;
+                // for != and ==
+                while (i < expression.size()) {
+                    current_token = expression[i];
+                    double left_operand_float, right_operand_float;
+                    string right_operand_string, left_operand_string;
+                    if (current_token.get_value() == "==" || current_token.get_value() == "!=") {
+                        //show_tokens(expression);
+                        //cout << expression[i + 1].get_value()<< endl << expression[i - 1].get_value()<<endl;
+                        if (expression[i - 1].get_type() == NUM && expression[i + 1].get_type() == NUM) {
+                            left_operand_float = stod(expression[i - 1].get_value());
+                            right_operand_float = stod(expression[i + 1].get_value());
+                        }
+                        else if (expression[i - 1].get_type() == STR && expression[i + 1].get_type() == STR){
+                            left_operand_string = expression[i - 1].get_value();
+                            right_operand_string = expression[i + 1].get_value();
+                        }
+
+                        expression.erase(
+                            expression.begin() + i - 1, expression.begin() + i + 2
+                        );
+                        Token ans;
+                        if (current_token.get_value() == "==") {
+                            ans.set_type(NUM);
+                            if (expression[i - 1].get_type() == NUM && expression[i + 1].get_type() == NUM)
+                                ans.set_value(to_string((int)(left_operand_float == right_operand_float)));
+                            else if ((expression[i - 1].get_type() == STR && expression[i + 1].get_type() == STR))
+                                ans.set_value(to_string((int)(left_operand_string == right_operand_string)));
+                           //ans(NUM, to_string(left_operand_float * right_operand_float));
+                        }
+                        else if (current_token.get_value() == "!=") {
+                            ans.set_type(NUM);
+                            if (expression[i - 1].get_type() == NUM && expression[i + 1].get_type() == NUM)
+                                ans.set_value(to_string((int)(left_operand_float != right_operand_float)));
+                            else if ((expression[i - 1].get_type() == STR && expression[i + 1].get_type() == STR))
+                                ans.set_value(to_string((int)(left_operand_string != right_operand_string)));
+                            //ans(NUM, to_string(left_operand_float / right_operand_float));
+                        }
+                        //cout << ans.repr()<< endl << i << endl;
+                        expression.insert(
+                            expression.begin() + i - 1, ans
+                        );
+                        //show_tokens(expression);
+                        i -= 1;
+                    }
+                    i++;
+                }
+
             }
             if (expression.size() == 0) expression.emplace_back("num", "0.000000");
             return expression[0];
         }
 
         void interpret(vector<string> ass_code) {
+            vars.store("endl", STR, "\n");
             //ifstream in("program.nv");
             string line;
             //while(getline(in, line)) ass_code.push_back(line);
@@ -623,5 +722,6 @@ int main() {
     //cout << nova.evaluate(n).repr();
     //nova.interpret();
     //cout << translate.evaluate(n).repr() << endl;
+    //getch();
     return 0;
 }
