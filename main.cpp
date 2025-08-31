@@ -291,6 +291,23 @@ class Interpreter{
                     i++;
                     //cout << i << endl;
                 }
+
+                //for !
+                i = expression.size() - 1;
+                while (i >= 0) {
+                    current_token = expression[i];
+                    float right_operand_float;
+                    if (current_token.get_type() == "operator:not") {
+                        //cout << expression[i + 1].get_value();
+                        right_operand_float = stod(expression[i + 1].get_value());
+                        if (right_operand_float == 0) expression[i + 1].set_value("1.000000");
+                        else expression[i + 1].set_value("0.000000");
+
+                        expression.erase(expression.end() - i - 2);
+                        //show_tokens(expression);
+                    } 
+                    i--;
+                }
                 i = 0;
                 //Highest Priority for * and /
                 while (i < expression.size()) {
