@@ -26,7 +26,7 @@ class Interpreter{
 
     vector<string> keywords = 
     {
-        "num", "str", "for", "loop", "if", "then", "endif", "else", "swaraj", "print", "input"
+        "num", "str", "for", "loop", "if", "then", "end", "else", "print", "input", "while"
     };
 
     VariableStorage vars;
@@ -313,7 +313,7 @@ class Interpreter{
                 while (i < expression.size()) {
                     current_token = expression[i];
                     float left_operand_float, right_operand_float;
-                    if (current_token.get_value() == "*" || current_token.get_value() == "/") {
+                    if (current_token.get_value() == "*" || current_token.get_value() == "/" || current_token.get_value() == "%") {
                         left_operand_float = stod(expression[i - 1].get_value());
                         right_operand_float = stod(expression[i + 1].get_value());
 
@@ -328,10 +328,14 @@ class Interpreter{
                             //show_tokens(expression);
                            //ans(NUM, to_string(left_operand_float * right_operand_float));
                         }
-                        else {
+                        else if (current_token.get_value() == "/"){
                             ans.set_type(NUM);
                             ans.set_value(to_string(left_operand_float / right_operand_float));
                             //ans(NUM, to_string(left_operand_float / right_operand_float));
+                        }
+                        else if(current_token.get_value() == "%"){
+                            ans.set_type(NUM);
+                            ans.set_value(to_string((int)left_operand_float % (int)right_operand_float));
                         }
                         expression.insert(
                             expression.begin() + i - 1, ans
@@ -382,7 +386,7 @@ class Interpreter{
                             ans.set_value(to_string(left_operand_float + right_operand_float));
                            //ans(NUM, to_string(left_operand_float * right_operand_float));
                         }
-                        else {
+                        else if (current_token.get_value() == "-") {
                             ans.set_type(NUM);
                             ans.set_value(to_string(left_operand_float - right_operand_float));
                             //ans(NUM, to_string(left_operand_float / right_operand_float));
@@ -588,9 +592,15 @@ class Interpreter{
                     //vars.show_all();
                 }
 
+                else if (line == "if") {
+                    if (evaluate(tokenize_line(ass_code[line_no + 1])).get_value() == "0") {
+                        line_no = stod(ass_code[line_no + 2]) - 1;
+                    } 
+                }
+
                 else if (line == "nl") cout << endl;
 
-                else if (line == "goto") line_no = stod(ass_code[line_no + 1]);
+                else if (line == "goto") line_no = stod(ass_code[line_no + 1]) - 1;
 
                 line_no++;
             }
@@ -599,6 +609,8 @@ class Interpreter{
         vector<string> translate_to_ass_code() {
             vector<string> ass_code;
             int line_no = 0, sub_line_no = 0;
+            vector<int> trackers;
+            int endable_keywords_tracker = 0;
 
             while (line_no < code_lines.size()) {
                 vector<Token> tokens = tokenize_line("", line_no);
@@ -708,6 +720,34 @@ class Interpreter{
                         ass_code.push_back(";");
                     }
                 }
+
+                else if(type == "keyword" && value == "while") {
+                    endable_keywords_tracker++;
+
+                    ass_code.push_back("if");
+
+                    current_expression = "";
+                    for (int i = 1; i < tokens.size(); i++) {
+
+                        if (tokens[i].get_type() == STR) current_expression += "\"" + tokens[i].get_value() + "\"" + " ";
+                        else current_expression += tokens[i].get_value() + " ";
+                    }
+                    ass_code.push_back(current_expression);
+                    ass_code.push_back("PLC");
+                    ass_code.push_back(";");
+
+                    trackers.push_back(ass_code.size() - 2);
+                }
+
+                else if (type == "keyword" && value == "end") {
+                    endable_keywords_tracker--;
+                    ass_code.push_back("goto");
+                    ass_code.push_back(to_string(trackers[trackers.size() - 1] - 2));
+                    ass_code.push_back(";");
+                    ass_code[trackers[trackers.size() - 1]] = to_string(ass_code.size());
+                    trackers.pop_back();
+                }
+
                 line_no++;
             }
             ass_code.push_back("ext");
