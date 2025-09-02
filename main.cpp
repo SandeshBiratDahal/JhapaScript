@@ -4,6 +4,7 @@
 #include<map>
 #include<string>
 #include<conio.h>
+#include <ctime>
 
 #include "tokens.cpp"
 #include "utilities.cpp"
@@ -26,12 +27,26 @@ class Interpreter{
 
     vector<string> keywords = 
     {
-        "num", "str", "for", "loop", "if", "then", "end", "else", "print", "input", "while"
+        "num", "str", "for", "loop", "if", "then", "end", "else", "print", "input", "while", "endif"
     };
 
     VariableStorage vars;
 
+    vector<int> if_tracker;
+    vector<vector<int>> if_elif_tracker;
+    string last_conditional;
+
     public:
+
+        string remove_whitespace(string s) {
+            string new_string = "";
+            for (char c: s) {
+                if (c != ' ' && c != '\t' && c != '\n') {
+                    new_string += c;
+                }
+            }
+            return new_string;
+        }
         // Reads the source code and divides it into different lines
         void read(string file_path){
             ifstream source_file(file_path);
@@ -39,7 +54,7 @@ class Interpreter{
             while (getline(source_file, line)) {
                 raw_code += line + "\n";
 
-                if (line != "") code_lines.push_back(line);
+                if (remove_whitespace(line) != "") code_lines.push_back(line);
             }
         }
 
@@ -201,6 +216,7 @@ class Interpreter{
 
                 i++;
             }
+            //show_tokens(tokens);
             return tokens;
         }
 
@@ -757,8 +773,68 @@ class Interpreter{
                     trackers.pop_back();
                 }
 
+                else if(type == "keyword" && value == "if") {
+                    last_conditional = "if";
+                    if_elif_tracker.push_back({});
+                    if_tracker.push_back(ass_code.size() + 2);
+                    ass_code.push_back("if");
+                    current_expression = "";
+                    for (int i = 1; i < tokens.size(); i++) {
+                        if (tokens[i].get_type() == STR) current_expression += "\"" + tokens[i].get_value() + "\"" + " ";
+                        else current_expression += tokens[i].get_value() + " ";
+                    }
+                    ass_code.push_back(current_expression);
+                    ass_code.push_back("PLC");
+                    ass_code.push_back(";");
+                }
+
+                else if (tokens.size() > 1 && type == "keyword" && value == "else" && tokens[1].get_value() == "if") {
+                    last_conditional = "elif";
+                    ass_code.push_back("goto");
+                    ass_code.push_back("PLC");
+                    ass_code.push_back(";");
+                    ass_code[if_tracker[if_tracker.size() - 1]] = to_string(ass_code.size());
+                    if_elif_tracker[if_elif_tracker.size() - 1].push_back(ass_code.size() - 2);
+                    if_tracker.pop_back();
+                    if_tracker.push_back(ass_code.size() + 2);
+                    ass_code.push_back("if");
+                    current_expression = "";
+                    for (int i = 2; i < tokens.size(); i++) {
+                        if (tokens[i].get_type() == STR) current_expression += "\"" + tokens[i].get_value() + "\"" + " ";
+                        else current_expression += tokens[i].get_value() + " ";
+                    }
+                    ass_code.push_back(current_expression);
+                    ass_code.push_back("PLC");
+                    ass_code.push_back(";");
+                }
+                else if (type == "keyword" && value == "else") {
+                    last_conditional = "else";
+                    ass_code.push_back("goto");
+                    ass_code.push_back("PLC");
+                    ass_code[if_tracker[if_tracker.size() - 1]] = to_string(ass_code.size());
+                    if_elif_tracker[if_elif_tracker.size() - 1].push_back(ass_code.size() - 1);
+                    if_tracker.pop_back();
+                    ass_code.push_back(";");
+                }
+
+                else if (type == "keyword" && value == "endif") {
+                    if (last_conditional != "if") {
+                        while (if_elif_tracker[if_elif_tracker.size() - 1].size() > 0) {
+                            ass_code[if_elif_tracker[if_elif_tracker.size() - 1][if_elif_tracker[if_elif_tracker.size() - 1].size() - 1]] = to_string(ass_code.size());
+                            if_elif_tracker[if_elif_tracker.size() - 1].pop_back();
+                        }
+                        if_elif_tracker.pop_back();
+                    }
+                    else {
+                        ass_code[if_tracker[if_tracker.size() - 1]] = to_string(ass_code.size());
+                        if_tracker.pop_back();
+                    }
+                }
+
                 line_no++;
             }
+
+            
             ass_code.push_back("ext");
             ass_code.push_back(";");
 
@@ -779,19 +855,15 @@ class Interpreter{
         }
 };
 
-int main() {
-    Interpreter nova;
-    nova.read("program.nv");
-    vector<string> ass_code = nova.translate_to_ass_code();
-    nova.interpret(ass_code);
-    //nova.get_vars().show_all();
-    //nova.get_vars().show_all();
-    //vector<Token> n = nova.tokenize_line("", 0);
-    //nova.show_tokens(n);
-    //nova.get_vars().show_all();
-    //cout << nova.evaluate(n).repr();
-    //nova.interpret();
-    //cout << translate.evaluate(n).repr() << endl;
+int main() { 
+    Interpreter jhapascript;
+    jhapascript.read("program.nv");
+    vector<string> ass_code = jhapascript.translate_to_ass_code();
+    clock_t start = clock();   // Start timing
+    jhapascript.interpret(ass_code);
+    clock_t end = clock();     // End timing
+    double time_taken = double(end - start) / CLOCKS_PER_SEC; // Convert to seconds
+    cout << endl << "Time taken: " << time_taken << " seconds" << endl;
     //getch();
     return 0;
 }
