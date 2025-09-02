@@ -1,3 +1,5 @@
+//JHAPASCRIPT
+
 #include<iostream>
 #include<fstream>
 #include<vector>
@@ -224,36 +226,49 @@ class Interpreter{
 
         Token evaluate(vector<Token> expression, int depth = 0) {
             //cout << "Depth: " << depth << endl;
+
+            vector<string> present_operators;
+
+            for (int i = 0; i < expression.size(); i++) {
+                if (expression[i].get_type().substr(0, 8) == "operator" || expression[i].get_type() == "leftparanthesis") {
+                    present_operators.push_back(expression[i].get_value());
+                    //cout << expression[i].get_value() << endl;
+                }
+            }
+
             bool has_paranthesis = false;
             int i = 0;
             Token current_token;
-            while (i < expression.size()){
-                current_token = expression[i];
-                
-                if (current_token.get_value() == "(") {
-                    has_paranthesis = true;
-                    int no_of_open_paranthesis = 1, j = i + 1;
-                    vector<Token> sub_tokens;
-                    while (true) {
-                        if (expression[j].get_value() == "(") no_of_open_paranthesis++;
-                        else if (expression[j].get_value() == ")") no_of_open_paranthesis--;
-                        if (expression[j].get_value() == ")" && no_of_open_paranthesis == 0) break;
-                        sub_tokens.push_back(expression[j]);
-                        j++;
-                        if (j > expression.size()) break;
+
+            if (contains(present_operators, "(")) {
+                //cout << "Hello" << endl;
+                while (i < expression.size()){
+                    current_token = expression[i];
+                    if (current_token.get_value() == "(") {
+                        has_paranthesis = true;
+                        int no_of_open_paranthesis = 1, j = i + 1;
+                        vector<Token> sub_tokens;
+                        while (true) {
+                            if (expression[j].get_value() == "(") no_of_open_paranthesis++;
+                            else if (expression[j].get_value() == ")") no_of_open_paranthesis--;
+                            if (expression[j].get_value() == ")" && no_of_open_paranthesis == 0) break;
+                            sub_tokens.push_back(expression[j]);
+                            j++;
+                            if (j > expression.size()) break;
+                        }
+
+                        // I need to replace the sub tokens with the evaluated value which can be achieved by using recursion:: DONE
+
+                        //show_tokens(sub_tokens);
+                        expression.erase(expression.begin() + i, expression.begin() + j + 1);
+                        expression.insert(
+                            expression.begin() + i, evaluate(sub_tokens, depth + 1)
+                        );
+                        has_paranthesis = false;
+                        //show_tokens(expression);
                     }
-
-                    // I need to replace the sub tokens with the evaluated value which can be achieved by using recursion:: DONE
-
-                    //show_tokens(sub_tokens);
-                    expression.erase(expression.begin() + i, expression.begin() + j + 1);
-                    expression.insert(
-                        expression.begin() + i, evaluate(sub_tokens, depth + 1)
-                    );
-                    has_paranthesis = false;
-                    //show_tokens(expression);
+                    i++; 
                 }
-                i++; 
             }
 
             if (!has_paranthesis) {
@@ -270,8 +285,6 @@ class Interpreter{
                         }
                         else if (expression[i + 1].get_value() != "=") {
                             Variable var = vars.get(current_token.get_value());
-
-                            //NEED TO ADD "" if the variable is a string
                             expression[i] = Token(var.get_data_type(), var.get_value());
                         }
                     }
@@ -282,238 +295,250 @@ class Interpreter{
                 i = 0;
                 //For assignment operator
                 // I AM GOING TO DIE FIXING THIS AAAAAAAAAAAAAAAAAAAAA
-                while (i < expression.size()) {
-                    current_token = expression[i];
-                    if (current_token.get_value() == "=" && expression[i - 1].get_type() == "identifier") {
-                        j = i + 1;
-                        //show_tokens(expression);
-                        vector<Token> sub_tokens;
-                        while (j < expression.size() && expression[j].get_value() != ","){
-                            sub_tokens.push_back(expression[j]);
-                            j++;
+                if (contains(present_operators, "=")) {
+                    while (i < expression.size()) {
+                        current_token = expression[i];
+                        if (current_token.get_value() == "=" && expression[i - 1].get_type() == "identifier") {
+                            j = i + 1;
+                            //show_tokens(expression);
+                            vector<Token> sub_tokens;
+                            while (j < expression.size() && expression[j].get_value() != ","){
+                                sub_tokens.push_back(expression[j]);
+                                j++;
+                            }
+                            //show_tokens(sub_tokens);
+                            //cout << evaluate(sub_tokens).get_value();
+                            vars.get(expression[i - 1].get_value()).set_value(
+                                evaluate(sub_tokens).get_value()
+                            );
+                            //vars.show_all();
+                            expression.erase(
+                                expression.begin() + i - 1, expression.begin() + j - 1
+                            );
+                            //cout << "__NEW__" << endl;
+                            //show_tokens(expression);
+                            //vars.show_all();  
+                            i = i - 1;                  
                         }
-                        //show_tokens(sub_tokens);
-                        //cout << evaluate(sub_tokens).get_value();
-                        vars.get(expression[i - 1].get_value()).set_value(
-                            evaluate(sub_tokens).get_value()
-                        );
-                        //vars.show_all();
-                        expression.erase(
-                            expression.begin() + i - 1, expression.begin() + j - 1
-                        );
-                        //cout << "__NEW__" << endl;
-                        //show_tokens(expression);
-                        //vars.show_all();  
-                        i = i - 1;                  
+                        i++;
+                        //cout << i << endl;
                     }
-                    i++;
-                    //cout << i << endl;
                 }
 
                 //for !
                 i = expression.size() - 1;
-                while (i >= 0) {
-                    current_token = expression[i];
-                    float right_operand_float;
-                    if (current_token.get_type() == "operator:not") {
-                        //cout << expression[i + 1].get_value();
-                        right_operand_float = stod(expression[i + 1].get_value());
-                        if (right_operand_float == 0) expression[i + 1].set_value("1.000000");
-                        else expression[i + 1].set_value("0.000000");
+                if (contains(present_operators, "!")) {
+                    while (i >= 0) {
+                        current_token = expression[i];
+                        float right_operand_float;
+                        if (current_token.get_type() == "operator:not") {
+                            //cout << expression[i + 1].get_value();
+                            right_operand_float = stod(expression[i + 1].get_value());
+                            if (right_operand_float == 0) expression[i + 1].set_value("1.000000");
+                            else expression[i + 1].set_value("0.000000");
 
-                        expression.erase(expression.end() - i - 2);
-                        //show_tokens(expression);
-                    } 
-                    i--;
+                            expression.erase(expression.end() - i - 2);
+                            //show_tokens(expression);
+                        } 
+                        i--;
+                    }
                 }
                 i = 0;
                 //Highest Priority for * and /
-                while (i < expression.size()) {
-                    current_token = expression[i];
-                    float left_operand_float, right_operand_float;
-                    if (current_token.get_value() == "*" || current_token.get_value() == "/" || current_token.get_value() == "%") {
-                        left_operand_float = stod(expression[i - 1].get_value());
-                        right_operand_float = stod(expression[i + 1].get_value());
+                if (contains(present_operators, "*", "/", "&")) {
+                    while (i < expression.size()) {
+                        current_token = expression[i];
+                        float left_operand_float, right_operand_float;
+                        if (current_token.get_value() == "*" || current_token.get_value() == "/" || current_token.get_value() == "%") {
+                            left_operand_float = stod(expression[i - 1].get_value());
+                            right_operand_float = stod(expression[i + 1].get_value());
 
-                        expression.erase(
-                            expression.begin() + i - 1, expression.begin() + i + 2
-                        );
-                        Token ans;
-                        if (current_token.get_value() == "*") {
-                            ans.set_type(NUM);
-                            ans.set_value(to_string(left_operand_float * right_operand_float));
-                            //cout << "AJADGKJA" << endl;
-                            //show_tokens(expression);
-                           //ans(NUM, to_string(left_operand_float * right_operand_float));
+                            expression.erase(
+                                expression.begin() + i - 1, expression.begin() + i + 2
+                            );
+                            Token ans;
+                            if (current_token.get_value() == "*") {
+                                ans.set_type(NUM);
+                                ans.set_value(to_string(left_operand_float * right_operand_float));
+                                //cout << "AJADGKJA" << endl;
+                                //show_tokens(expression);
+                            //ans(NUM, to_string(left_operand_float * right_operand_float));
+                            }
+                            else if (current_token.get_value() == "/"){
+                                ans.set_type(NUM);
+                                ans.set_value(to_string(left_operand_float / right_operand_float));
+                                //ans(NUM, to_string(left_operand_float / right_operand_float));
+                            }
+                            else if(current_token.get_value() == "%"){
+                                ans.set_type(NUM);
+                                ans.set_value(to_string((int)left_operand_float % (int)right_operand_float));
+                            }
+                            expression.insert(
+                                expression.begin() + i - 1, ans
+                            );
+                            i -= 1;
                         }
-                        else if (current_token.get_value() == "/"){
-                            ans.set_type(NUM);
-                            ans.set_value(to_string(left_operand_float / right_operand_float));
-                            //ans(NUM, to_string(left_operand_float / right_operand_float));
+                        else if (current_token.get_value() == "+" && expression[i - 1].get_type() == "str" && expression[i + 1].get_type() == "str") {
+                            string left_operand, right_operand;
+                            left_operand = (expression[i - 1].get_value());
+                            right_operand = (expression[i + 1].get_value());
+
+                            expression.erase(
+                                expression.begin() + i - 1, expression.begin() + i + 2
+                            );
+
+                            Token ans;
+
+                            ans.set_type(STR);
+                            ans.set_value(left_operand + right_operand);
+
+                            expression.insert(
+                                expression.begin() + i - 1, ans
+                            );
+                            i -= 1;
                         }
-                        else if(current_token.get_value() == "%"){
-                            ans.set_type(NUM);
-                            ans.set_value(to_string((int)left_operand_float % (int)right_operand_float));
-                        }
-                        expression.insert(
-                            expression.begin() + i - 1, ans
-                        );
-                        i -= 1;
+                        //cout << "___NEW___ pr" << endl;
+                        //show_tokens(expression);
+                        i++;
                     }
-                    else if (current_token.get_value() == "+" && expression[i - 1].get_type() == "str" && expression[i + 1].get_type() == "str") {
-                        string left_operand, right_operand;
-                        left_operand = (expression[i - 1].get_value());
-                        right_operand = (expression[i + 1].get_value());
-
-                        expression.erase(
-                            expression.begin() + i - 1, expression.begin() + i + 2
-                        );
-
-                        Token ans;
-
-                        ans.set_type(STR);
-                        ans.set_value(left_operand + right_operand);
-
-                        expression.insert(
-                            expression.begin() + i - 1, ans
-                        );
-                        i -= 1;
-                    }
-                    //cout << "___NEW___ pr" << endl;
-                    //show_tokens(expression);
-                    i++;
                 }
 
                 i = 0;
                 // FOr + and -
-                while (i < expression.size()) {
-                    current_token = expression[i];
-                    double left_operand_float, right_operand_float;
-                    if (current_token.get_value() == "+" || current_token.get_value() == "-") {
-                        //show_tokens(expression);
-                        //cout << expression[i + 1].get_value()<< endl << expression[i - 1].get_value()<<endl;
-                        left_operand_float = stod(expression[i - 1].get_value());
-                        right_operand_float = stod(expression[i + 1].get_value());
+                if (contains(present_operators, "+", "-")) {
+                    while (i < expression.size()) {
+                        current_token = expression[i];
+                        double left_operand_float, right_operand_float;
+                        if (current_token.get_value() == "+" || current_token.get_value() == "-") {
+                            //show_tokens(expression);
+                            //cout << expression[i + 1].get_value()<< endl << expression[i - 1].get_value()<<endl;
+                            left_operand_float = stod(expression[i - 1].get_value());
+                            right_operand_float = stod(expression[i + 1].get_value());
 
-                        expression.erase(
-                            expression.begin() + i - 1, expression.begin() + i + 2
-                        );
-                        Token ans;
-                        if (current_token.get_value() == "+") {
-                            ans.set_type(NUM);
-                            ans.set_value(to_string(left_operand_float + right_operand_float));
-                           //ans(NUM, to_string(left_operand_float * right_operand_float));
+                            expression.erase(
+                                expression.begin() + i - 1, expression.begin() + i + 2
+                            );
+                            Token ans;
+                            if (current_token.get_value() == "+") {
+                                ans.set_type(NUM);
+                                ans.set_value(to_string(left_operand_float + right_operand_float));
+                            //ans(NUM, to_string(left_operand_float * right_operand_float));
+                            }
+                            else if (current_token.get_value() == "-") {
+                                ans.set_type(NUM);
+                                ans.set_value(to_string(left_operand_float - right_operand_float));
+                                //ans(NUM, to_string(left_operand_float / right_operand_float));
+                            }
+                            //cout << ans.repr()<< endl << i << endl;
+                            expression.insert(
+                                expression.begin() + i - 1, ans
+                            );
+                            //show_tokens(expression);
+                            i -= 1;
                         }
-                        else if (current_token.get_value() == "-") {
-                            ans.set_type(NUM);
-                            ans.set_value(to_string(left_operand_float - right_operand_float));
-                            //ans(NUM, to_string(left_operand_float / right_operand_float));
-                        }
-                        //cout << ans.repr()<< endl << i << endl;
-                        expression.insert(
-                            expression.begin() + i - 1, ans
-                        );
+                        i++;
+                        //cout << "___NEW___" << endl;
                         //show_tokens(expression);
-                        i -= 1;
                     }
-                    i++;
-                    //cout << "___NEW___" << endl;
-                    //show_tokens(expression);
                 }
 
                 i = 0;
                 // for <,>, <=, >=
-                while (i < expression.size()) {
-                    current_token = expression[i];
-                    double left_operand_float, right_operand_float;
-                    if (current_token.get_value() == "<" || current_token.get_value() == "<=" || current_token.get_value() == ">" || current_token.get_value() == ">=") {
-                        //show_tokens(expression);
-                        //cout << expression[i + 1].get_value()<< endl << expression[i - 1].get_value()<<endl;
-                        left_operand_float = stod(expression[i - 1].get_value());
-                        right_operand_float = stod(expression[i + 1].get_value());
+                if (contains(present_operators, "<", "<=", ">", ">=")) {
+                    while (i < expression.size()) {
+                        current_token = expression[i];
+                        double left_operand_float, right_operand_float;
+                        if (current_token.get_value() == "<" || current_token.get_value() == "<=" || current_token.get_value() == ">" || current_token.get_value() == ">=") {
+                            //show_tokens(expression);
+                            //cout << expression[i + 1].get_value()<< endl << expression[i - 1].get_value()<<endl;
+                            left_operand_float = stod(expression[i - 1].get_value());
+                            right_operand_float = stod(expression[i + 1].get_value());
 
-                        expression.erase(
-                            expression.begin() + i - 1, expression.begin() + i + 2
-                        );
-                        Token ans;
-                        if (current_token.get_value() == "<") {
-                            ans.set_type(NUM);
-                            ans.set_value(to_string((int)(left_operand_float < right_operand_float)));
-                           //ans(NUM, to_string(left_operand_float * right_operand_float));
+                            expression.erase(
+                                expression.begin() + i - 1, expression.begin() + i + 2
+                            );
+                            Token ans;
+                            if (current_token.get_value() == "<") {
+                                ans.set_type(NUM);
+                                ans.set_value(to_string((int)(left_operand_float < right_operand_float)));
+                            //ans(NUM, to_string(left_operand_float * right_operand_float));
+                            }
+                            else if (current_token.get_value() == "<=") {
+                                ans.set_type(NUM);
+                                ans.set_value(to_string((int)(left_operand_float <= right_operand_float)));
+                                //ans(NUM, to_string(left_operand_float / right_operand_float));
+                            }
+                            else if (current_token.get_value() == ">") {
+                                ans.set_type(NUM);
+                                ans.set_value(to_string((int)(left_operand_float > right_operand_float)));
+                                //ans(NUM, to_string(left_operand_float / right_operand_float));
+                            }
+                            else if (current_token.get_value() == ">=") {
+                                ans.set_type(NUM);
+                                ans.set_value(to_string((int)(left_operand_float >= right_operand_float)));
+                                //ans(NUM, to_string(left_operand_float / right_operand_float));
+                            }
+                            //cout << ans.repr()<< endl << i << endl;
+                            expression.insert(
+                                expression.begin() + i - 1, ans
+                            );
+                            //show_tokens(expression);
+                            i -= 1;
                         }
-                        else if (current_token.get_value() == "<=") {
-                            ans.set_type(NUM);
-                            ans.set_value(to_string((int)(left_operand_float <= right_operand_float)));
-                            //ans(NUM, to_string(left_operand_float / right_operand_float));
-                        }
-                        else if (current_token.get_value() == ">") {
-                            ans.set_type(NUM);
-                            ans.set_value(to_string((int)(left_operand_float > right_operand_float)));
-                            //ans(NUM, to_string(left_operand_float / right_operand_float));
-                        }
-                        else if (current_token.get_value() == ">=") {
-                            ans.set_type(NUM);
-                            ans.set_value(to_string((int)(left_operand_float >= right_operand_float)));
-                            //ans(NUM, to_string(left_operand_float / right_operand_float));
-                        }
-                        //cout << ans.repr()<< endl << i << endl;
-                        expression.insert(
-                            expression.begin() + i - 1, ans
-                        );
-                        //show_tokens(expression);
-                        i -= 1;
+                        i++;
                     }
-                    i++;
                 }
 
                 i = 0;
                 // for != and ==
-                while (i < expression.size()) {
-                    current_token = expression[i];
-                    double left_operand_float, right_operand_float;
-                    string right_operand_string, left_operand_string;
-                    if (current_token.get_value() == "==" || current_token.get_value() == "!=") {
-                        //cout << "New" << endl;
-                        //show_tokens(expression);
-                        //cout << expression[i + 1].get_value()<< endl << expression[i - 1].get_value()<<endl;
-                        if (expression[i - 1].get_type() == NUM && expression[i + 1].get_type() == NUM) {
-                            left_operand_float = stod(expression[i - 1].get_value());
-                            right_operand_float = stod(expression[i + 1].get_value());
-                        }
-                        else if (expression[i - 1].get_type() == STR && expression[i + 1].get_type() == STR){
-                            left_operand_string = expression[i - 1].get_value();
-                            right_operand_string = expression[i + 1].get_value();
-                        }
+                if (contains(present_operators, "==", "!=")) {
+                    while (i < expression.size()) {
+                        current_token = expression[i];
+                        double left_operand_float, right_operand_float;
+                        string right_operand_string, left_operand_string;
+                        if (current_token.get_value() == "==" || current_token.get_value() == "!=") {
+                            //cout << "New" << endl;
+                            //show_tokens(expression);
+                            //cout << expression[i + 1].get_value()<< endl << expression[i - 1].get_value()<<endl;
+                            if (expression[i - 1].get_type() == NUM && expression[i + 1].get_type() == NUM) {
+                                left_operand_float = stod(expression[i - 1].get_value());
+                                right_operand_float = stod(expression[i + 1].get_value());
+                            }
+                            else if (expression[i - 1].get_type() == STR && expression[i + 1].get_type() == STR){
+                                left_operand_string = expression[i - 1].get_value();
+                                right_operand_string = expression[i + 1].get_value();
+                            }
 
-                        Token ans;
-                        if (current_token.get_value() == "==") {
-                            ans.set_type(NUM);
-                            if (expression[i - 1].get_type() == NUM && expression[i + 1].get_type() == NUM)
-                                ans.set_value(to_string((int)(left_operand_float == right_operand_float)));
-                            else if ((expression[i - 1].get_type() == STR && expression[i + 1].get_type() == STR))
-                                ans.set_value(to_string((int)(left_operand_string == right_operand_string)));
-                           //ans(NUM, to_string(left_operand_float * right_operand_float));
+                            Token ans;
+                            if (current_token.get_value() == "==") {
+                                ans.set_type(NUM);
+                                if (expression[i - 1].get_type() == NUM && expression[i + 1].get_type() == NUM)
+                                    ans.set_value(to_string((int)(left_operand_float == right_operand_float)));
+                                else if ((expression[i - 1].get_type() == STR && expression[i + 1].get_type() == STR))
+                                    ans.set_value(to_string((int)(left_operand_string == right_operand_string)));
+                            //ans(NUM, to_string(left_operand_float * right_operand_float));
+                            }
+                            else if (current_token.get_value() == "!=") {
+                                ans.set_type(NUM);
+                                if (expression[i - 1].get_type() == NUM && expression[i + 1].get_type() == NUM)
+                                    ans.set_value(to_string((int)(left_operand_float != right_operand_float)));
+                                else if ((expression[i - 1].get_type() == STR && expression[i + 1].get_type() == STR))
+                                    ans.set_value(to_string((int)(left_operand_string != right_operand_string)));
+                                //ans(NUM, to_string(left_operand_float / right_operand_float));
+                            }
+                            expression.erase(
+                                expression.begin() + i - 1, expression.begin() + i + 2
+                            );
+                            //cout << ans.repr()<< endl << i << endl;
+                            expression.insert(
+                                expression.begin() + i - 1, ans
+                            );
+                            //show_tokens(expression);
+                            i -= 1;
+                            //show_tokens(expression);
                         }
-                        else if (current_token.get_value() == "!=") {
-                            ans.set_type(NUM);
-                            if (expression[i - 1].get_type() == NUM && expression[i + 1].get_type() == NUM)
-                                ans.set_value(to_string((int)(left_operand_float != right_operand_float)));
-                            else if ((expression[i - 1].get_type() == STR && expression[i + 1].get_type() == STR))
-                                ans.set_value(to_string((int)(left_operand_string != right_operand_string)));
-                            //ans(NUM, to_string(left_operand_float / right_operand_float));
-                        }
-                        expression.erase(
-                            expression.begin() + i - 1, expression.begin() + i + 2
-                        );
-                        //cout << ans.repr()<< endl << i << endl;
-                        expression.insert(
-                            expression.begin() + i - 1, ans
-                        );
-                        //show_tokens(expression);
-                        i -= 1;
-                        //show_tokens(expression);
+                        i++;
                     }
-                    i++;
                 }
 
             }
@@ -563,7 +588,7 @@ class Interpreter{
                     line_no = sub_line_no;
                 }
 
-                else if (line == "ld") {
+                /*else if (line == "ld") {
                     sub_line_no = line_no + 1;
                     while (ass_code[sub_line_no] != ";") {
                         vars.edit(
@@ -573,7 +598,7 @@ class Interpreter{
                         sub_line_no += 2;
                     }
                     line_no = sub_line_no;
-                }
+                }*/
 
                 else if (line == "ipt") {
                     sub_line_no = line_no + 1;
@@ -623,14 +648,14 @@ class Interpreter{
                     }
                 }
 
-                else if (line == "nl") cout << endl;
+                //else if (line == "nl") cout << endl;
 
                 else if (line == "goto") line_no = stod(ass_code[line_no + 1]) - 1;
 
                 line_no++;
             }
             
-            //cout << endl << "Number of steps: " << no_of_steps << endl;
+            cout << endl << "Number of steps: " << no_of_steps << endl;
         }
 
         vector<string> translate_to_ass_code() {
