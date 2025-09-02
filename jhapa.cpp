@@ -5,6 +5,7 @@
 #include<string>
 #include<conio.h>
 #include <ctime>
+#include<string.h>
 
 #include "tokens.cpp"
 #include "utilities.cpp"
@@ -27,7 +28,7 @@ class Interpreter{
 
     vector<string> keywords = 
     {
-        "num", "str", "for", "loop", "if", "then", "end", "else", "print", "input", "while", "endif"
+        "num", "str", "for", "loop", "if", "end", "else", "print", "input", "while", "endif"
     };
 
     VariableStorage vars;
@@ -36,6 +37,7 @@ class Interpreter{
     vector<vector<int>> if_elif_tracker;
     string last_conditional;
 
+    string last_loop;
     public:
 
         string remove_whitespace(string s) {
@@ -747,13 +749,13 @@ class Interpreter{
                 }
 
                 else if(type == "keyword" && value == "while") {
+                    last_loop = "while";
                     endable_keywords_tracker++;
 
                     ass_code.push_back("if");
 
                     current_expression = "";
                     for (int i = 1; i < tokens.size(); i++) {
-
                         if (tokens[i].get_type() == STR) current_expression += "\"" + tokens[i].get_value() + "\"" + " ";
                         else current_expression += tokens[i].get_value() + " ";
                     }
@@ -762,6 +764,51 @@ class Interpreter{
                     ass_code.push_back(";");
 
                     trackers.push_back(ass_code.size() - 2);
+                }
+
+                else if (type == "keyword" && value == "for") {
+                    last_loop = "for";
+                    endable_keywords_tracker++;
+                    vector<string> expressions;
+                    current_expression = "";
+                    string loop_var = tokens[1].get_value();
+
+                    for (int i = 1; i < tokens.size(); i++) {
+                        if (tokens[i].get_type() == "operator:comma") {
+                            expressions.push_back(current_expression);
+                            current_expression = "";
+                            continue;
+                        }
+                        if (tokens[i].get_type() == STR) current_expression += "\"" + tokens[i].get_value() + "\"" + " ";
+                        else current_expression += tokens[i].get_value() + " ";
+                    }
+                    expressions.push_back(current_expression);
+
+                    if (expressions.size() == 2) expressions.push_back("1");
+                    ass_code.push_back("expr");
+                    ass_code.push_back(expressions[0]);
+                    ass_code.push_back(";");
+
+                    ass_code.push_back("if");
+                    ass_code.push_back(expressions[1]);
+                    ass_code.push_back(loop_var);
+                    ass_code.push_back(expressions[2]);
+                    trackers.push_back(ass_code.size() - 2);
+                }
+
+                else if (type == "keyword" && value == "loop") {
+                    string loop_var = ass_code[trackers[trackers.size() - 1]];
+                    string increment = ass_code[trackers[trackers.size() - 1] + 1];
+                    ass_code.push_back("expr");
+                    ass_code.push_back(loop_var + " = " + loop_var + " + " + increment);
+                    ass_code.push_back(";");
+                    endable_keywords_tracker--;
+                    ass_code.push_back("goto");
+                    ass_code.push_back(to_string(trackers[trackers.size() - 1] - 2));
+                    ass_code.push_back(";");
+                    ass_code[trackers[trackers.size() - 1]] = to_string(ass_code.size());
+                    ass_code[trackers[trackers.size() - 1] + 1] = ";";
+                    trackers.pop_back();
                 }
 
                 else if (type == "keyword" && value == "end") {
@@ -833,8 +880,6 @@ class Interpreter{
 
                 line_no++;
             }
-
-            
             ass_code.push_back("ext");
             ass_code.push_back(";");
 
@@ -855,9 +900,11 @@ class Interpreter{
         }
 };
 
-int main() { 
+int main(int argc, char* argv[]) { 
+    string file_path = "program.jhs";
+    if (argc > 1) file_path = argv[1];
     Interpreter jhapascript;
-    jhapascript.read("program.nv");
+    jhapascript.read(file_path);
     vector<string> ass_code = jhapascript.translate_to_ass_code();
     clock_t start = clock();   // Start timing
     jhapascript.interpret(ass_code);
