@@ -1,5 +1,4 @@
 //JHAPASCRIPT
-
 #include<iostream>
 #include<fstream>
 #include<vector>
@@ -30,12 +29,13 @@ class Interpreter{
 
     vector<string> keywords = 
     {
-        "num", "str", "for", "loop", "if", "end", "else", "print", "input", "while", "endif"
+        "num", "str", "for", "loop", "if", "end", "else", "print", "input", "while", "endif", "break", "continue"
     };
 
     VariableStorage vars;
 
-    vector<int> if_tracker;
+    vector<int> if_tracker, while_break_tracker, while_continue_tracker, for_break_tracker, for_continue_tracker;
+    vector<char> loops;
     vector<vector<int>> if_elif_tracker;
     string last_conditional;
 
@@ -647,14 +647,12 @@ class Interpreter{
                         line_no += 3;
                     }
                 }
-
                 //else if (line == "nl") cout << endl;
-
                 else if (line == "goto") line_no = stod(ass_code[line_no + 1]) - 1;
 
                 line_no++;
             }
-            
+
             cout << endl << "Number of steps: " << no_of_steps << endl;
         }
 
@@ -774,6 +772,7 @@ class Interpreter{
                 }
 
                 else if(type == "keyword" && value == "while") {
+                    loops.push_back('f');
                     last_loop = "while";
                     endable_keywords_tracker++;
 
@@ -792,6 +791,7 @@ class Interpreter{
                 }
 
                 else if (type == "keyword" && value == "for") {
+                    loops.push_back('f');
                     last_loop = "for";
                     endable_keywords_tracker++;
                     vector<string> expressions;
@@ -822,6 +822,10 @@ class Interpreter{
                 }
 
                 else if (type == "keyword" && value == "loop") {
+                    if (for_continue_tracker.size() != 0) {
+                        ass_code[for_continue_tracker[for_continue_tracker.size() - 1]] = to_string(ass_code.size());
+                        for_continue_tracker.pop_back();
+                    }
                     string loop_var = ass_code[trackers[trackers.size() - 1]];
                     string increment = ass_code[trackers[trackers.size() - 1] + 1];
                     ass_code.push_back("expr");
@@ -830,6 +834,10 @@ class Interpreter{
                     endable_keywords_tracker--;
                     ass_code.push_back("goto");
                     ass_code.push_back(to_string(trackers[trackers.size() - 1] - 2));
+                    if (for_break_tracker.size() != 0) {
+                        ass_code[for_break_tracker[for_break_tracker.size() - 1]] = to_string(ass_code.size());
+                        for_break_tracker.pop_back();
+                    }
                     ass_code.push_back(";");
                     ass_code[trackers[trackers.size() - 1]] = to_string(ass_code.size());
                     ass_code[trackers[trackers.size() - 1] + 1] = ";";
@@ -837,9 +845,17 @@ class Interpreter{
                 }
 
                 else if (type == "keyword" && value == "end") {
+                    if (while_continue_tracker.size() != 0) {
+                        ass_code[while_continue_tracker[while_continue_tracker.size() - 1]] = to_string(ass_code.size());
+                        while_continue_tracker.pop_back();
+                    }
                     endable_keywords_tracker--;
                     ass_code.push_back("goto");
                     ass_code.push_back(to_string(trackers[trackers.size() - 1] - 2));
+                    if (while_break_tracker.size() != 0) {
+                        ass_code[while_break_tracker[while_break_tracker.size() - 1]] = to_string(ass_code.size());
+                        while_break_tracker.pop_back();
+                    }
                     ass_code.push_back(";");
                     ass_code[trackers[trackers.size() - 1]] = to_string(ass_code.size());
                     trackers.pop_back();
@@ -903,6 +919,22 @@ class Interpreter{
                     }
                 }
 
+                else if (type == "keyword" && value == "break") {
+                    ass_code.push_back("goto");
+                    if (loops[loops.size() - 1] == 'f') for_break_tracker.push_back(ass_code.size());
+                    else while_break_tracker.push_back(ass_code.size());
+                    ass_code.push_back("PLC");
+                    ass_code.push_back(";");
+                }
+
+                else if (type == "keyword" && value == "continue") {
+                    ass_code.push_back("goto");
+                    if (loops[loops.size() - 1] == 'f') for_continue_tracker.push_back(ass_code.size());
+                    else while_continue_tracker.push_back(ass_code.size());
+                    ass_code.push_back("PLC");
+                    ass_code.push_back(";");
+                }
+
                 line_no++;
             }
             ass_code.push_back("ext");
@@ -936,6 +968,11 @@ int main(int argc, char* argv[]) {
     clock_t end = clock();     // End timing
     double time_taken = double(end - start) / CLOCKS_PER_SEC; // Convert to seconds
     cout << endl << "Time taken: " << time_taken << " seconds" << endl;
-    //getch();
     return 0;
 }
+
+/*
+Optimizations that could be made:
+1. Instead of looping over and over for all the present operators, we make separate variables for each operator and check by looping only once
+2. Instead of writing the raw expression to the assembly-like code, we just save the token objects and there is no need for tokenization again
+*/
