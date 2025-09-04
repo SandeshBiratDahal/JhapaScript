@@ -7,7 +7,6 @@
 #include<conio.h>
 #include <ctime>
 #include<string.h>
-
 #include "tokens.cpp"
 #include "utilities.cpp"
 #include "variables_storage.cpp"
@@ -653,7 +652,7 @@ class Interpreter{
                 line_no++;
             }
 
-            cout << endl << "Number of steps: " << no_of_steps << endl;
+            cout << endl << endl << "Number of steps: " << no_of_steps;
         }
 
         vector<string> translate_to_ass_code() {
@@ -772,7 +771,7 @@ class Interpreter{
                 }
 
                 else if(type == "keyword" && value == "while") {
-                    loops.push_back('f');
+                    loops.push_back('w');
                     last_loop = "while";
                     endable_keywords_tracker++;
 
@@ -967,7 +966,7 @@ int main(int argc, char* argv[]) {
     jhapascript.interpret(ass_code);
     clock_t end = clock();     // End timing
     double time_taken = double(end - start) / CLOCKS_PER_SEC; // Convert to seconds
-    cout << endl << "Time taken: " << time_taken << " seconds" << endl;
+    cout << endl << "Time taken: " << time_taken << " seconds";
     return 0;
 }
 
