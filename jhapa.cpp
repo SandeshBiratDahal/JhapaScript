@@ -344,7 +344,7 @@ class Interpreter{
                 }
                 i = 0;
                 //Highest Priority for * and /
-                if (contains(present_operators, "*", "/", "&")) {
+                if (contains(present_operators, "*", "/", "&", "+")) {
                     while (i < expression.size()) {
                         current_token = expression[i];
                         float left_operand_float, right_operand_float;
@@ -974,4 +974,16 @@ int main(int argc, char* argv[]) {
 Optimizations that could be made:
 1. Instead of looping over and over for all the present operators, we make separate variables for each operator and check by looping only once
 2. Instead of writing the raw expression to the assembly-like code, we just save the token objects and there is no need for tokenization again
+3. Using printf instead of cout as printf prints using output buffer unlike cout
+*/
+
+/*
+TODO:
+1. Add &&, || and /* operators
+2. Add proper error handling
+3. Add arrays for str and num
+4. Add functions
+5. Make it able to evaluate /n's entered by user in strings
+6. Add comments
+7. Add a way to index individual elements of a string
 */
