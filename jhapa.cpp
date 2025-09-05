@@ -344,7 +344,7 @@ class Interpreter{
                 }
                 i = 0;
                 //Highest Priority for * and /
-                if (contains(present_operators, "*", "/", "&", "+")) {
+                if (contains(present_operators, "*", "/", "&", "+", "%")) {
                     while (i < expression.size()) {
                         current_token = expression[i];
                         float left_operand_float, right_operand_float;
@@ -371,6 +371,7 @@ class Interpreter{
                             else if(current_token.get_value() == "%"){
                                 ans.set_type(NUM);
                                 ans.set_value(to_string((int)left_operand_float % (int)right_operand_float));
+                                //cout << ans.get_value() << endl;
                             }
                             expression.insert(
                                 expression.begin() + i - 1, ans
