@@ -206,15 +206,25 @@ class Interpreter{
                 }
 
                 else if (letter == '.') {
-                    if (line[i + 1] == '.') {
-                        tokens.emplace_back("operator:concat", "..");
-                        i++;
-                    }
-                    else tokens.emplace_back("operator:dot", ".");
+                    tokens.emplace_back("operator:dot", ".");
                 }
 
                 else if (letter == '%') {
                     tokens.emplace_back("operator:modulus", "%");
+                }
+
+                else if (letter == '|') {
+                    if (line[i + 1] == '|') {
+                        tokens.emplace_back("operator:or", "||");
+                        i++;
+                    }
+                }
+
+                else if (letter == '&') {
+                    if (line[i + 1] == '&') {
+                        tokens.emplace_back("operator:and", "&&");
+                        i++;
+                    }
                 }
 
                 i++;
@@ -344,11 +354,14 @@ class Interpreter{
                 }
                 i = 0;
                 //Highest Priority for * and /
-                if (contains(present_operators, "*", "/", "&", "+", "%")) {
+                if (contains(present_operators, "*", "/", "+", "%")) {
+                    //show_tokens(expression);
                     while (i < expression.size()) {
                         current_token = expression[i];
-                        float left_operand_float, right_operand_float;
-                        if (current_token.get_value() == "*" || current_token.get_value() == "/" || current_token.get_value() == "%") {
+                        //cout <<current_token.get_value() << endl << expression[i - 1].get_type() << endl <<  expression[i + 1].get_type() << endl;
+                        //cout << current_token.get_value();
+                        if (current_token.get_type().substr(0, 8) == "operator" && (current_token.get_value() == "*" || current_token.get_value() == "/" || current_token.get_value() == "%")) {
+                            float left_operand_float, right_operand_float;
                             left_operand_float = stod(expression[i - 1].get_value());
                             right_operand_float = stod(expression[i + 1].get_value());
 
@@ -378,11 +391,12 @@ class Interpreter{
                             );
                             i -= 1;
                         }
-                        else if (current_token.get_value() == "+" && expression[i - 1].get_type() == "str" && expression[i + 1].get_type() == "str") {
+                        else if (current_token.get_type().substr(0, 8) == "operator" && (current_token.get_value() == "+" && expression[i - 1].get_type() == STR && expression[i + 1].get_type() == STR)) {
+                            //cout << expression[i - 1].get_type() <<endl << expression[i + 1].get_type() << endl;
                             string left_operand, right_operand;
                             left_operand = (expression[i - 1].get_value());
                             right_operand = (expression[i + 1].get_value());
-
+                            
                             expression.erase(
                                 expression.begin() + i - 1, expression.begin() + i + 2
                             );
@@ -410,6 +424,7 @@ class Interpreter{
                         current_token = expression[i];
                         double left_operand_float, right_operand_float;
                         if (current_token.get_value() == "+" || current_token.get_value() == "-") {
+                            //cout << "Yes";
                             //show_tokens(expression);
                             //cout << expression[i + 1].get_value()<< endl << expression[i - 1].get_value()<<endl;
                             left_operand_float = stod(expression[i - 1].get_value());
@@ -534,6 +549,40 @@ class Interpreter{
                                 expression.begin() + i - 1, ans
                             );
                             //show_tokens(expression);
+                            i -= 1;
+                            //show_tokens(expression);
+                        }
+                        i++;
+                    }
+                }
+                i = 0;
+                if (contains(present_operators, "&&", "||")) {
+                    //show_tokens(expression);
+                    while (i < expression.size()) {
+                        current_token = expression[i];
+                        //cout << current_token.get_value() << " ";
+                        if (current_token.get_type().substr(0, 8) == "operator" && (current_token.get_value() == "&&" || current_token.get_value() == "||")) {
+                            double left_operand, right_operand;
+                            left_operand = stod(expression[i - 1].get_value());
+                            right_operand = stod(expression[i + 1].get_value());
+                            //cout << left_operand << endl << right_operand;
+                            //show_tokens(expression);
+                            Token ans;
+                            if (current_token.get_value() == "&&") {
+                                //cout << left_operand << " " << right_operand;
+                                ans.set_type(NUM);
+                                ans.set_value(to_string((int)left_operand && (int)right_operand));
+                            }
+                            else if (current_token.get_value() == "||") {
+                                ans.set_type(NUM);
+                                ans.set_value(to_string((int)left_operand || (int)right_operand));
+                            }
+                            expression.erase(
+                                expression.begin() + i - 1, expression.begin() + i + 2
+                            );
+                            expression.insert(
+                                expression.begin() + i - 1, ans
+                            );
                             i -= 1;
                             //show_tokens(expression);
                         }
@@ -689,8 +738,8 @@ class Interpreter{
 
                     if (current_expression != "") {
                         ass_code.push_back(current_expression);
-                        ass_code.push_back(";");
                     }
+                    ass_code.push_back(";");
                 }
 
                 else if (type == "keyword" && value == "input") {
@@ -749,10 +798,9 @@ class Interpreter{
                     }
                     ass_code.push_back(";");
                     
-
+                    ass_code.push_back("expr");
                     for (int i = 0; i < initialized.size(); i++) {
                         //cout << expressions[i];
-                        ass_code.push_back("expr");
                         if (value == NUM)
                             ass_code.push_back(
                                 initialized[i] + " = " + expressions[i]
@@ -766,9 +814,9 @@ class Interpreter{
                             ass_code.push_back(
                                 initialized[i] + " = " + expressions[i]
                             );
-                        }
-                        ass_code.push_back(";");
+                        }   
                     }
+                    ass_code.push_back(";");
                 }
 
                 else if(type == "keyword" && value == "while") {
