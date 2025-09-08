@@ -166,7 +166,15 @@ class Interpreter{
                 }
 
                 else if (letter == '/') {
-                    tokens.emplace_back("operator:divide", "/");
+                    //cout << (line[i + 1]);
+                    if (line[i + 1] == '/') {
+                        return tokens;
+                    }
+                    else if (line[i + 1] == '*') {
+                        tokens.emplace_back("operator:integerdivide", "/*");
+                        i++;
+                    }
+                    else tokens.emplace_back("operator:divide", "/");
                 }
 
                 else if (letter == '>') {
@@ -354,17 +362,19 @@ class Interpreter{
                 }
                 i = 0;
                 //Highest Priority for * and /
-                if (contains(present_operators, "*", "/", "+", "%")) {
+                if (contains(present_operators, "*", "/", "+", "%", "/*")) {
+                    //cout << "Yes";
                     //show_tokens(expression);
                     while (i < expression.size()) {
+                        //cout << "Yes";
                         current_token = expression[i];
                         //cout <<current_token.get_value() << endl << expression[i - 1].get_type() << endl <<  expression[i + 1].get_type() << endl;
                         //cout << current_token.get_value();
-                        if (current_token.get_type().substr(0, 8) == "operator" && (current_token.get_value() == "*" || current_token.get_value() == "/" || current_token.get_value() == "%")) {
-                            float left_operand_float, right_operand_float;
+                        if (current_token.get_type().substr(0, 8) == "operator" && (current_token.get_value() == "*" || current_token.get_value() == "/" || current_token.get_value() == "%" || current_token.get_value() == "/*")) {
+                            double left_operand_float, right_operand_float;
                             left_operand_float = stod(expression[i - 1].get_value());
                             right_operand_float = stod(expression[i + 1].get_value());
-
+                            //cout << (left_operand_float / right_operand_float);
                             expression.erase(
                                 expression.begin() + i - 1, expression.begin() + i + 2
                             );
@@ -385,6 +395,11 @@ class Interpreter{
                                 ans.set_type(NUM);
                                 ans.set_value(to_string((int)left_operand_float % (int)right_operand_float));
                                 //cout << ans.get_value() << endl;
+                            }
+                            else if (current_token.get_value() == "/*") {
+                                ans.set_type(NUM);
+                                //cout << "Yes";
+                                ans.set_value(to_string((int) (left_operand_float / right_operand_float)));
                             }
                             expression.insert(
                                 expression.begin() + i - 1, ans
@@ -713,276 +728,277 @@ class Interpreter{
 
             while (line_no < code_lines.size()) {
                 vector<Token> tokens = tokenize_line("", line_no);
-                string line = code_lines[line_no], type = tokens[0].get_type(), value = tokens[0].get_value();
-                string current_expression = "";
+                if (tokens.size()) {
+                    string line = code_lines[line_no], type = tokens[0].get_type(), value = tokens[0].get_value();
+                    string current_expression = "";
 
-                if ((type == "keyword" && value == "print") || type != "keyword") {
+                    if ((type == "keyword" && value == "print") || type != "keyword") {
 
-                    if (type == "keyword") ass_code.push_back("prt");
-                    else ass_code.push_back("expr");
-                    int i = 0;
+                        if (type == "keyword") ass_code.push_back("prt");
+                        else ass_code.push_back("expr");
+                        int i = 0;
 
-                    for (i = type == "keyword" ? 1 : 0; i < tokens.size(); i++) {
-                        if (tokens[i].get_value() == "," && tokens[i].get_type() == "operator:comma"){
-                            ass_code.push_back(current_expression);
-                            current_expression = "";
-                            continue;
+                        for (i = type == "keyword" ? 1 : 0; i < tokens.size(); i++) {
+                            if (tokens[i].get_value() == "," && tokens[i].get_type() == "operator:comma"){
+                                ass_code.push_back(current_expression);
+                                current_expression = "";
+                                continue;
+                            }
+                            if (tokens[i].get_type() == STR) {
+                                current_expression += "\""+ tokens[i].get_value() + "\"" + " ";
+                            }
+                            else {
+                                current_expression += tokens[i].get_value() + " ";
+                            }
                         }
-                        if (tokens[i].get_type() == STR) {
-                            current_expression += "\""+ tokens[i].get_value() + "\"" + " ";
+
+                        if (current_expression != "") {
+                            ass_code.push_back(current_expression);
+                        }
+                        ass_code.push_back(";");
+                    }
+
+                    else if (type == "keyword" && value == "input") {
+                        //show_tokens(tokens);
+                        ass_code.push_back("ipt");
+
+                        for (int i = 1; i < tokens.size(); i++) {
+                            if (tokens[i].get_type() == "operator:comma" && tokens[i].get_value() == ",") {
+                                ass_code.push_back(current_expression);
+                                current_expression = "";
+                                continue;
+                            }
+
+                            if (tokens[i].get_type() == "identifier") {
+                                current_expression += tokens[i].get_value();
+                            }  
+                        }
+                        ass_code.push_back(current_expression);
+                        ass_code.push_back(";");
+                    }
+
+                    else if (type == "keyword" && (value == STR || value == NUM)) {
+                        tokens.emplace_back("operator:comma", ",");
+
+                        ass_code.push_back(value);
+                        //show_tokens(tokens);
+                        vector<string> declared;
+                        vector<string> initialized;
+                        vector<string> expressions;
+
+                        for (int i = 1; i < tokens.size(); i++) {
+                            if (tokens[i].get_type() == "identifier" && tokens[i + 1].get_value() != "=") {
+                                declared.push_back(tokens[i].get_value());
+                            }
+                            else if(tokens[i].get_type() == "identifier" && tokens[i + 1].get_value() == "=") {
+                                declared.push_back(tokens[i].get_value());
+                                initialized.push_back(tokens[i].get_value());
+                                sub_line_no = i + 2;
+                                current_expression = "";
+                                while (tokens[sub_line_no].get_type() != "operator:comma") {
+                                    if (tokens[sub_line_no].get_type() != STR) {
+                                        current_expression += tokens[sub_line_no].get_value() + " ";
+                                    }
+                                    else if (tokens[sub_line_no].get_type() == STR){
+                                        current_expression += "\"" + tokens[sub_line_no].get_value() + "\" ";
+                                    }
+                                    sub_line_no++;
+                                }
+                                expressions.push_back(current_expression);
+                                current_expression = "";
+                                i = sub_line_no;
+                            }
+                        }
+                        for (int i = 0; i < declared.size(); i++) {
+                            ass_code.push_back(declared[i]);
+                        }
+                        ass_code.push_back(";");
+                        
+                        ass_code.push_back("expr");
+                        for (int i = 0; i < initialized.size(); i++) {
+                            //cout << expressions[i];
+                            if (value == NUM)
+                                ass_code.push_back(
+                                    initialized[i] + " = " + expressions[i]
+                                );
+                            else
+                            {
+                                if (!expressions[i].empty()) {
+                                    expressions[i].pop_back();
+                                }
+                                //cout << expressions[i];
+                                ass_code.push_back(
+                                    initialized[i] + " = " + expressions[i]
+                                );
+                            }   
+                        }
+                        ass_code.push_back(";");
+                    }
+
+                    else if(type == "keyword" && value == "while") {
+                        loops.push_back('w');
+                        last_loop = "while";
+                        endable_keywords_tracker++;
+
+                        ass_code.push_back("if");
+
+                        current_expression = "";
+                        for (int i = 1; i < tokens.size(); i++) {
+                            if (tokens[i].get_type() == STR) current_expression += "\"" + tokens[i].get_value() + "\"" + " ";
+                            else current_expression += tokens[i].get_value() + " ";
+                        }
+                        ass_code.push_back(current_expression);
+                        ass_code.push_back("PLC");
+                        ass_code.push_back(";");
+
+                        trackers.push_back(ass_code.size() - 2);
+                    }
+
+                    else if (type == "keyword" && value == "for") {
+                        loops.push_back('f');
+                        last_loop = "for";
+                        endable_keywords_tracker++;
+                        vector<string> expressions;
+                        current_expression = "";
+                        string loop_var = tokens[1].get_value();
+
+                        for (int i = 1; i < tokens.size(); i++) {
+                            if (tokens[i].get_type() == "operator:comma") {
+                                expressions.push_back(current_expression);
+                                current_expression = "";
+                                continue;
+                            }
+                            if (tokens[i].get_type() == STR) current_expression += "\"" + tokens[i].get_value() + "\"" + " ";
+                            else current_expression += tokens[i].get_value() + " ";
+                        }
+                        expressions.push_back(current_expression);
+
+                        if (expressions.size() == 2) expressions.push_back("1");
+                        ass_code.push_back("expr");
+                        ass_code.push_back(expressions[0]);
+                        ass_code.push_back(";");
+
+                        ass_code.push_back("if");
+                        ass_code.push_back(expressions[1]);
+                        ass_code.push_back(loop_var);
+                        ass_code.push_back(expressions[2]);
+                        trackers.push_back(ass_code.size() - 2);
+                    }
+
+                    else if (type == "keyword" && value == "loop") {
+                        if (for_continue_tracker.size() != 0) {
+                            ass_code[for_continue_tracker[for_continue_tracker.size() - 1]] = to_string(ass_code.size());
+                            for_continue_tracker.pop_back();
+                        }
+                        string loop_var = ass_code[trackers[trackers.size() - 1]];
+                        string increment = ass_code[trackers[trackers.size() - 1] + 1];
+                        ass_code.push_back("expr");
+                        ass_code.push_back(loop_var + " = " + loop_var + " + " + increment);
+                        ass_code.push_back(";");
+                        endable_keywords_tracker--;
+                        ass_code.push_back("goto");
+                        ass_code.push_back(to_string(trackers[trackers.size() - 1] - 2));
+                        if (for_break_tracker.size() != 0) {
+                            ass_code[for_break_tracker[for_break_tracker.size() - 1]] = to_string(ass_code.size());
+                            for_break_tracker.pop_back();
+                        }
+                        ass_code.push_back(";");
+                        ass_code[trackers[trackers.size() - 1]] = to_string(ass_code.size());
+                        ass_code[trackers[trackers.size() - 1] + 1] = ";";
+                        trackers.pop_back();
+                    }
+
+                    else if (type == "keyword" && value == "end") {
+                        if (while_continue_tracker.size() != 0) {
+                            ass_code[while_continue_tracker[while_continue_tracker.size() - 1]] = to_string(ass_code.size());
+                            while_continue_tracker.pop_back();
+                        }
+                        endable_keywords_tracker--;
+                        ass_code.push_back("goto");
+                        ass_code.push_back(to_string(trackers[trackers.size() - 1] - 2));
+                        if (while_break_tracker.size() != 0) {
+                            ass_code[while_break_tracker[while_break_tracker.size() - 1]] = to_string(ass_code.size());
+                            while_break_tracker.pop_back();
+                        }
+                        ass_code.push_back(";");
+                        ass_code[trackers[trackers.size() - 1]] = to_string(ass_code.size());
+                        trackers.pop_back();
+                    }
+
+                    else if(type == "keyword" && value == "if") {
+                        last_conditional = "if";
+                        if_elif_tracker.push_back({});
+                        if_tracker.push_back(ass_code.size() + 2);
+                        ass_code.push_back("if");
+                        current_expression = "";
+                        for (int i = 1; i < tokens.size(); i++) {
+                            if (tokens[i].get_type() == STR) current_expression += "\"" + tokens[i].get_value() + "\"" + " ";
+                            else current_expression += tokens[i].get_value() + " ";
+                        }
+                        ass_code.push_back(current_expression);
+                        ass_code.push_back("PLC");
+                        ass_code.push_back(";");
+                    }
+
+                    else if (tokens.size() > 1 && type == "keyword" && value == "else" && tokens[1].get_value() == "if") {
+                        last_conditional = "elif";
+                        ass_code.push_back("goto");
+                        ass_code.push_back("PLC");
+                        ass_code.push_back(";");
+                        ass_code[if_tracker[if_tracker.size() - 1]] = to_string(ass_code.size());
+                        if_elif_tracker[if_elif_tracker.size() - 1].push_back(ass_code.size() - 2);
+                        if_tracker.pop_back();
+                        if_tracker.push_back(ass_code.size() + 2);
+                        ass_code.push_back("if");
+                        current_expression = "";
+                        for (int i = 2; i < tokens.size(); i++) {
+                            if (tokens[i].get_type() == STR) current_expression += "\"" + tokens[i].get_value() + "\"" + " ";
+                            else current_expression += tokens[i].get_value() + " ";
+                        }
+                        ass_code.push_back(current_expression);
+                        ass_code.push_back("PLC");
+                        ass_code.push_back(";");
+                    }
+                    else if (type == "keyword" && value == "else") {
+                        last_conditional = "else";
+                        ass_code.push_back("goto");
+                        ass_code.push_back("PLC");
+                        ass_code[if_tracker[if_tracker.size() - 1]] = to_string(ass_code.size());
+                        if_elif_tracker[if_elif_tracker.size() - 1].push_back(ass_code.size() - 1);
+                        if_tracker.pop_back();
+                        ass_code.push_back(";");
+                    }
+
+                    else if (type == "keyword" && value == "endif") {
+                        if (last_conditional != "if") {
+                            while (if_elif_tracker[if_elif_tracker.size() - 1].size() > 0) {
+                                ass_code[if_elif_tracker[if_elif_tracker.size() - 1][if_elif_tracker[if_elif_tracker.size() - 1].size() - 1]] = to_string(ass_code.size());
+                                if_elif_tracker[if_elif_tracker.size() - 1].pop_back();
+                            }
+                            if_elif_tracker.pop_back();
                         }
                         else {
-                            current_expression += tokens[i].get_value() + " ";
+                            ass_code[if_tracker[if_tracker.size() - 1]] = to_string(ass_code.size());
+                            if_tracker.pop_back();
                         }
                     }
 
-                    if (current_expression != "") {
-                        ass_code.push_back(current_expression);
+                    else if (type == "keyword" && value == "break") {
+                        ass_code.push_back("goto");
+                        if (loops[loops.size() - 1] == 'f') for_break_tracker.push_back(ass_code.size());
+                        else while_break_tracker.push_back(ass_code.size());
+                        ass_code.push_back("PLC");
+                        ass_code.push_back(";");
                     }
-                    ass_code.push_back(";");
+
+                    else if (type == "keyword" && value == "continue") {
+                        ass_code.push_back("goto");
+                        if (loops[loops.size() - 1] == 'f') for_continue_tracker.push_back(ass_code.size());
+                        else while_continue_tracker.push_back(ass_code.size());
+                        ass_code.push_back("PLC");
+                        ass_code.push_back(";");
+                    }  
                 }
-
-                else if (type == "keyword" && value == "input") {
-                    //show_tokens(tokens);
-                    ass_code.push_back("ipt");
-
-                    for (int i = 1; i < tokens.size(); i++) {
-                        if (tokens[i].get_type() == "operator:comma" && tokens[i].get_value() == ",") {
-                            ass_code.push_back(current_expression);
-                            current_expression = "";
-                            continue;
-                        }
-
-                        if (tokens[i].get_type() == "identifier") {
-                            current_expression += tokens[i].get_value();
-                        }  
-                    }
-                    ass_code.push_back(current_expression);
-                    ass_code.push_back(";");
-                }
-
-                else if (type == "keyword" && (value == STR || value == NUM)) {
-                    tokens.emplace_back("operator:comma", ",");
-
-                    ass_code.push_back(value);
-                    //show_tokens(tokens);
-                    vector<string> declared;
-                    vector<string> initialized;
-                    vector<string> expressions;
-
-                    for (int i = 1; i < tokens.size(); i++) {
-                        if (tokens[i].get_type() == "identifier" && tokens[i + 1].get_value() != "=") {
-                            declared.push_back(tokens[i].get_value());
-                        }
-                        else if(tokens[i].get_type() == "identifier" && tokens[i + 1].get_value() == "=") {
-                            declared.push_back(tokens[i].get_value());
-                            initialized.push_back(tokens[i].get_value());
-                            sub_line_no = i + 2;
-                            current_expression = "";
-                            while (tokens[sub_line_no].get_type() != "operator:comma") {
-                                if (tokens[sub_line_no].get_type() != STR) {
-                                    current_expression += tokens[sub_line_no].get_value() + " ";
-                                }
-                                else if (tokens[sub_line_no].get_type() == STR){
-                                    current_expression += "\"" + tokens[sub_line_no].get_value() + "\" ";
-                                }
-                                sub_line_no++;
-                            }
-                            expressions.push_back(current_expression);
-                            current_expression = "";
-                            i = sub_line_no;
-                        }
-                    }
-                    for (int i = 0; i < declared.size(); i++) {
-                        ass_code.push_back(declared[i]);
-                    }
-                    ass_code.push_back(";");
-                    
-                    ass_code.push_back("expr");
-                    for (int i = 0; i < initialized.size(); i++) {
-                        //cout << expressions[i];
-                        if (value == NUM)
-                            ass_code.push_back(
-                                initialized[i] + " = " + expressions[i]
-                            );
-                        else
-                        {
-                            if (!expressions[i].empty()) {
-                                expressions[i].pop_back();
-                            }
-                            //cout << expressions[i];
-                            ass_code.push_back(
-                                initialized[i] + " = " + expressions[i]
-                            );
-                        }   
-                    }
-                    ass_code.push_back(";");
-                }
-
-                else if(type == "keyword" && value == "while") {
-                    loops.push_back('w');
-                    last_loop = "while";
-                    endable_keywords_tracker++;
-
-                    ass_code.push_back("if");
-
-                    current_expression = "";
-                    for (int i = 1; i < tokens.size(); i++) {
-                        if (tokens[i].get_type() == STR) current_expression += "\"" + tokens[i].get_value() + "\"" + " ";
-                        else current_expression += tokens[i].get_value() + " ";
-                    }
-                    ass_code.push_back(current_expression);
-                    ass_code.push_back("PLC");
-                    ass_code.push_back(";");
-
-                    trackers.push_back(ass_code.size() - 2);
-                }
-
-                else if (type == "keyword" && value == "for") {
-                    loops.push_back('f');
-                    last_loop = "for";
-                    endable_keywords_tracker++;
-                    vector<string> expressions;
-                    current_expression = "";
-                    string loop_var = tokens[1].get_value();
-
-                    for (int i = 1; i < tokens.size(); i++) {
-                        if (tokens[i].get_type() == "operator:comma") {
-                            expressions.push_back(current_expression);
-                            current_expression = "";
-                            continue;
-                        }
-                        if (tokens[i].get_type() == STR) current_expression += "\"" + tokens[i].get_value() + "\"" + " ";
-                        else current_expression += tokens[i].get_value() + " ";
-                    }
-                    expressions.push_back(current_expression);
-
-                    if (expressions.size() == 2) expressions.push_back("1");
-                    ass_code.push_back("expr");
-                    ass_code.push_back(expressions[0]);
-                    ass_code.push_back(";");
-
-                    ass_code.push_back("if");
-                    ass_code.push_back(expressions[1]);
-                    ass_code.push_back(loop_var);
-                    ass_code.push_back(expressions[2]);
-                    trackers.push_back(ass_code.size() - 2);
-                }
-
-                else if (type == "keyword" && value == "loop") {
-                    if (for_continue_tracker.size() != 0) {
-                        ass_code[for_continue_tracker[for_continue_tracker.size() - 1]] = to_string(ass_code.size());
-                        for_continue_tracker.pop_back();
-                    }
-                    string loop_var = ass_code[trackers[trackers.size() - 1]];
-                    string increment = ass_code[trackers[trackers.size() - 1] + 1];
-                    ass_code.push_back("expr");
-                    ass_code.push_back(loop_var + " = " + loop_var + " + " + increment);
-                    ass_code.push_back(";");
-                    endable_keywords_tracker--;
-                    ass_code.push_back("goto");
-                    ass_code.push_back(to_string(trackers[trackers.size() - 1] - 2));
-                    if (for_break_tracker.size() != 0) {
-                        ass_code[for_break_tracker[for_break_tracker.size() - 1]] = to_string(ass_code.size());
-                        for_break_tracker.pop_back();
-                    }
-                    ass_code.push_back(";");
-                    ass_code[trackers[trackers.size() - 1]] = to_string(ass_code.size());
-                    ass_code[trackers[trackers.size() - 1] + 1] = ";";
-                    trackers.pop_back();
-                }
-
-                else if (type == "keyword" && value == "end") {
-                    if (while_continue_tracker.size() != 0) {
-                        ass_code[while_continue_tracker[while_continue_tracker.size() - 1]] = to_string(ass_code.size());
-                        while_continue_tracker.pop_back();
-                    }
-                    endable_keywords_tracker--;
-                    ass_code.push_back("goto");
-                    ass_code.push_back(to_string(trackers[trackers.size() - 1] - 2));
-                    if (while_break_tracker.size() != 0) {
-                        ass_code[while_break_tracker[while_break_tracker.size() - 1]] = to_string(ass_code.size());
-                        while_break_tracker.pop_back();
-                    }
-                    ass_code.push_back(";");
-                    ass_code[trackers[trackers.size() - 1]] = to_string(ass_code.size());
-                    trackers.pop_back();
-                }
-
-                else if(type == "keyword" && value == "if") {
-                    last_conditional = "if";
-                    if_elif_tracker.push_back({});
-                    if_tracker.push_back(ass_code.size() + 2);
-                    ass_code.push_back("if");
-                    current_expression = "";
-                    for (int i = 1; i < tokens.size(); i++) {
-                        if (tokens[i].get_type() == STR) current_expression += "\"" + tokens[i].get_value() + "\"" + " ";
-                        else current_expression += tokens[i].get_value() + " ";
-                    }
-                    ass_code.push_back(current_expression);
-                    ass_code.push_back("PLC");
-                    ass_code.push_back(";");
-                }
-
-                else if (tokens.size() > 1 && type == "keyword" && value == "else" && tokens[1].get_value() == "if") {
-                    last_conditional = "elif";
-                    ass_code.push_back("goto");
-                    ass_code.push_back("PLC");
-                    ass_code.push_back(";");
-                    ass_code[if_tracker[if_tracker.size() - 1]] = to_string(ass_code.size());
-                    if_elif_tracker[if_elif_tracker.size() - 1].push_back(ass_code.size() - 2);
-                    if_tracker.pop_back();
-                    if_tracker.push_back(ass_code.size() + 2);
-                    ass_code.push_back("if");
-                    current_expression = "";
-                    for (int i = 2; i < tokens.size(); i++) {
-                        if (tokens[i].get_type() == STR) current_expression += "\"" + tokens[i].get_value() + "\"" + " ";
-                        else current_expression += tokens[i].get_value() + " ";
-                    }
-                    ass_code.push_back(current_expression);
-                    ass_code.push_back("PLC");
-                    ass_code.push_back(";");
-                }
-                else if (type == "keyword" && value == "else") {
-                    last_conditional = "else";
-                    ass_code.push_back("goto");
-                    ass_code.push_back("PLC");
-                    ass_code[if_tracker[if_tracker.size() - 1]] = to_string(ass_code.size());
-                    if_elif_tracker[if_elif_tracker.size() - 1].push_back(ass_code.size() - 1);
-                    if_tracker.pop_back();
-                    ass_code.push_back(";");
-                }
-
-                else if (type == "keyword" && value == "endif") {
-                    if (last_conditional != "if") {
-                        while (if_elif_tracker[if_elif_tracker.size() - 1].size() > 0) {
-                            ass_code[if_elif_tracker[if_elif_tracker.size() - 1][if_elif_tracker[if_elif_tracker.size() - 1].size() - 1]] = to_string(ass_code.size());
-                            if_elif_tracker[if_elif_tracker.size() - 1].pop_back();
-                        }
-                        if_elif_tracker.pop_back();
-                    }
-                    else {
-                        ass_code[if_tracker[if_tracker.size() - 1]] = to_string(ass_code.size());
-                        if_tracker.pop_back();
-                    }
-                }
-
-                else if (type == "keyword" && value == "break") {
-                    ass_code.push_back("goto");
-                    if (loops[loops.size() - 1] == 'f') for_break_tracker.push_back(ass_code.size());
-                    else while_break_tracker.push_back(ass_code.size());
-                    ass_code.push_back("PLC");
-                    ass_code.push_back(";");
-                }
-
-                else if (type == "keyword" && value == "continue") {
-                    ass_code.push_back("goto");
-                    if (loops[loops.size() - 1] == 'f') for_continue_tracker.push_back(ass_code.size());
-                    else while_continue_tracker.push_back(ass_code.size());
-                    ass_code.push_back("PLC");
-                    ass_code.push_back(";");
-                }
-
                 line_no++;
             }
             ass_code.push_back("ext");
