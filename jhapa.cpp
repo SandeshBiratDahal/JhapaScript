@@ -814,25 +814,27 @@ class Interpreter{
                         }
                         ass_code.push_back(";");
                         
-                        ass_code.push_back("expr");
-                        for (int i = 0; i < initialized.size(); i++) {
-                            //cout << expressions[i];
-                            if (value == NUM)
-                                ass_code.push_back(
-                                    initialized[i] + " = " + expressions[i]
-                                );
-                            else
-                            {
-                                if (!expressions[i].empty()) {
-                                    expressions[i].pop_back();
-                                }
+                        if (initialized.size() != 0){
+                            ass_code.push_back("expr");
+                            for (int i = 0; i < initialized.size(); i++) {
                                 //cout << expressions[i];
-                                ass_code.push_back(
-                                    initialized[i] + " = " + expressions[i]
-                                );
-                            }   
+                                if (value == NUM)
+                                    ass_code.push_back(
+                                        initialized[i] + " = " + expressions[i]
+                                    );
+                                else
+                                {
+                                    if (!expressions[i].empty()) {
+                                        expressions[i].pop_back();
+                                    }
+                                    //cout << expressions[i];
+                                    ass_code.push_back(
+                                        initialized[i] + " = " + expressions[i]
+                                    );
+                                }   
+                            }
+                            ass_code.push_back(";");
                         }
-                        ass_code.push_back(";");
                     }
 
                     else if(type == "keyword" && value == "while") {
@@ -1044,11 +1046,11 @@ Optimizations that could be made:
 
 /*
 TODO:
-1. Add &&, || and /* operators
+1. Add &&, || and /* operators --Done
 2. Add proper error handling
 3. Add arrays for str and num
 4. Add functions
 5. Make it able to evaluate /n's entered by user in strings
-6. Add comments
+6. Add comments --Done
 7. Add a way to index individual elements of a string
 */
