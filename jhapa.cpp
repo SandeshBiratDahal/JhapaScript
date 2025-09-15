@@ -1,4 +1,4 @@
-//JHAPASCRIPT
+//JHAPASCRIPT: 0.1
 #include<iostream>
 #include<fstream>
 #include<vector>
@@ -28,7 +28,7 @@ class Interpreter{
 
     vector<string> keywords = 
     {
-        "num", "str", "for", "loop", "if", "end", "else", "print", "input", "while", "endif", "break", "continue"
+        "num", "str", "for", "loop", "if", "end", "else", "print", "input", "while", "endif", "break", "continue", "clear", "num_array"
     };
 
     VariableStorage vars;
@@ -40,7 +40,6 @@ class Interpreter{
 
     string last_loop;
     public:
-
         string remove_whitespace(string s) {
             string new_string = "";
             for (char c: s) {
@@ -242,6 +241,11 @@ class Interpreter{
         }
 
         Token evaluate(vector<Token> expression, int depth = 0) {
+
+            //CONTAINS_BOOLS
+            bool ASSIGNMENT = false, COMMA = false, AND = false, OR = false, NOT = false, MODULUS = false, RIGHTPARANTHESIS = false,
+            DOT = false, LESSTHAN = false, GREATERTHAN = false, LESSTHANEQ = false, GREATERTHANEQ = false, EQUALSTO = false, PLUS = false,
+            MINUS = false, MULTIPLY = false, DIVIDE = false, INTEGERDIVIDE = false;
             //cout << "Depth: " << depth << endl;
 
             vector<string> present_operators;
@@ -611,6 +615,8 @@ class Interpreter{
         }
 
         void interpret(vector<string> ass_code) {
+            string print_buffer;
+            int max_buffer_size = 100;
             vars.store("endl", STR, "\n");
             //ifstream in("program.nv");
             string line;
@@ -628,7 +634,9 @@ class Interpreter{
                 else if (line == "prt") {
                     sub_line_no = line_no + 1;
                     while (ass_code[sub_line_no] != ";") {
-                        cout << evaluate(tokenize_line(ass_code[sub_line_no])).get_value();
+                        //cout << evaluate(tokenize_line(ass_code[sub_line_no])).get_value();
+                        print_buffer += evaluate(tokenize_line(ass_code[sub_line_no])).get_value();
+                        
                         sub_line_no++;
                     }
                     line_no = sub_line_no;
@@ -665,6 +673,8 @@ class Interpreter{
                 }*/
 
                 else if (line == "ipt") {
+                    printf("%s", print_buffer.c_str());
+                    print_buffer = "";
                     sub_line_no = line_no + 1;
                     //vars.show_all();
                     while (ass_code[sub_line_no] != ";") {
@@ -714,9 +724,20 @@ class Interpreter{
                 //else if (line == "nl") cout << endl;
                 else if (line == "goto") line_no = stod(ass_code[line_no + 1]) - 1;
 
+                else if(line == "cls") {
+                    system("cls");
+                    line_no++;
+                }
+
+                if (print_buffer.size() >= max_buffer_size) {
+                    printf("%s", print_buffer.c_str());
+                    print_buffer = "";
+                }
+
                 line_no++;
             }
-
+            //cout << print_buffer.size();
+            printf("%s", print_buffer.c_str());
             cout << endl << endl << "Number of steps: " << no_of_steps;
         }
 
@@ -1000,6 +1021,11 @@ class Interpreter{
                         ass_code.push_back("PLC");
                         ass_code.push_back(";");
                     }  
+
+                    else if (type == "keyword" && value == "clear") {
+                        ass_code.push_back("cls");
+                        ass_code.push_back(";");
+                    }
                 }
                 line_no++;
             }
@@ -1041,7 +1067,7 @@ int main(int argc, char* argv[]) {
 Optimizations that could be made:
 1. Instead of looping over and over for all the present operators, we make separate variables for each operator and check by looping only once
 2. Instead of writing the raw expression to the assembly-like code, we just save the token objects and there is no need for tokenization again
-3. Using printf instead of cout as printf prints using output buffer unlike cout
+3. Using printf instead of cout as printf prints using output buffer unlike cout --DONE
 */
 
 /*
