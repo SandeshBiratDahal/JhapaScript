@@ -100,7 +100,7 @@ class Interpreter{
                     i = j - 1;
                 }
 
-                // for interges and floats
+                // for interges and doubles
                 else if (nums.find(letter) != string::npos) {
                     bool has_decimal = false;
                     current_token += letter;
@@ -110,7 +110,7 @@ class Interpreter{
                     while ((nums.find(line[j]) != string::npos || line[j] == '.') && j < line.length()) {
                         if (line[j] == '.') {
                             if (!has_decimal) has_decimal = true;
-                            else cout << "Multiple decimal symbols found in the float literal!" << endl;
+                            else cout << "Multiple decimal symbols found in the double literal!" << endl;
                         }
                         current_token += line[j];
                         j++;
@@ -267,7 +267,7 @@ class Interpreter{
             vector<string> present_operators;
 
             for (int i = 0; i < expression.size(); i++) {
-                if (expression[i].get_type().substr(0, 8) == "operator" || expression[i].get_type() == "leftparanthesis") {
+                if (expression[i].get_type().substr(0, 8) == "operator" || expression[i].get_type() == "leftparanthesis" || expression[i].get_type() == "leftsquares") {
                     present_operators.push_back(expression[i].get_value());
                     //cout << expression[i].get_value() << endl;
                 }
@@ -277,10 +277,11 @@ class Interpreter{
             int i = 0;
             Token current_token;
 
-            if (contains(present_operators, "(")) {
+            if (contains(present_operators, "(", "[")) {
                 //cout << "Hello" << endl;
                 while (i < expression.size()){
                     current_token = expression[i];
+                    //cout << current_token.get_value() << endl;
                     if (current_token.get_value() == "(") {
                         has_paranthesis = true;
                         int no_of_open_paranthesis = 1, j = i + 1;
@@ -291,7 +292,7 @@ class Interpreter{
                             if (expression[j].get_value() == ")" && no_of_open_paranthesis == 0) break;
                             sub_tokens.push_back(expression[j]);
                             j++;
-                            if (j > expression.size()) break;
+                            if (j >= expression.size()) break;
                         }
 
                         // I need to replace the sub tokens with the evaluated value which can be achieved by using recursion:: DONE
@@ -303,6 +304,28 @@ class Interpreter{
                         );
                         has_paranthesis = false;
                         //show_tokens(expression);
+                    }
+                    if (current_token.get_value() == "[") {
+                        has_paranthesis = true;
+                        int no_of_open_paranthesis = 1, j = i + 1;
+                        vector<Token> sub_tokens;
+                        while (true) {
+                            if (expression[j].get_value() == "[") no_of_open_paranthesis++;
+                            else if (expression[j].get_value() == "]") no_of_open_paranthesis--;
+                            if (expression[j].get_value() == "]" && no_of_open_paranthesis == 0) break;
+                            sub_tokens.push_back(expression[j]);
+                            j++;
+                            if (j >= expression.size()) break;
+                        }
+                        expression.erase(expression.begin() + i, expression.begin() + j + 1);
+                        //show_tokens(sub_tokens);
+                        expression[i - 1].set_value(
+                            expression[i - 1].get_value() + "_" + evaluate(sub_tokens, depth + 1).get_value()
+                        );
+                        has_paranthesis = false;
+                        //cout << "__NEW__" << endl;
+                        //show_tokens(expression);
+                        i--;
                     }
                     i++; 
                 }
@@ -367,11 +390,11 @@ class Interpreter{
                 if (contains(present_operators, "!")) {
                     while (i >= 0) {
                         current_token = expression[i];
-                        float right_operand_float;
+                        double right_operand_double;
                         if (current_token.get_type() == "operator:not") {
                             //cout << expression[i + 1].get_value();
-                            right_operand_float = stod(expression[i + 1].get_value());
-                            if (right_operand_float == 0) expression[i + 1].set_value("1.000000");
+                            right_operand_double = stod(expression[i + 1].get_value());
+                            if (right_operand_double == 0) expression[i + 1].set_value("1.000000");
                             else expression[i + 1].set_value("0.000000");
 
                             expression.erase(expression.end() - i - 2);
@@ -391,35 +414,35 @@ class Interpreter{
                         //cout <<current_token.get_value() << endl << expression[i - 1].get_type() << endl <<  expression[i + 1].get_type() << endl;
                         //cout << current_token.get_value();
                         if (current_token.get_type().substr(0, 8) == "operator" && (current_token.get_value() == "*" || current_token.get_value() == "/" || current_token.get_value() == "%" || current_token.get_value() == "/*")) {
-                            double left_operand_float, right_operand_float;
-                            left_operand_float = stod(expression[i - 1].get_value());
-                            right_operand_float = stod(expression[i + 1].get_value());
-                            //cout << (left_operand_float / right_operand_float);
+                            double left_operand_double, right_operand_double;
+                            left_operand_double = stod(expression[i - 1].get_value());
+                            right_operand_double = stod(expression[i + 1].get_value());
+                            //cout << (left_operand_double / right_operand_double);
                             expression.erase(
                                 expression.begin() + i - 1, expression.begin() + i + 2
                             );
                             Token ans;
                             if (current_token.get_value() == "*") {
                                 ans.set_type(NUM);
-                                ans.set_value(to_string(left_operand_float * right_operand_float));
+                                ans.set_value(to_string(left_operand_double * right_operand_double));
                                 //cout << "AJADGKJA" << endl;
                                 //show_tokens(expression);
-                            //ans(NUM, to_string(left_operand_float * right_operand_float));
+                            //ans(NUM, to_string(left_operand_double * right_operand_double));
                             }
                             else if (current_token.get_value() == "/"){
                                 ans.set_type(NUM);
-                                ans.set_value(to_string(left_operand_float / right_operand_float));
-                                //ans(NUM, to_string(left_operand_float / right_operand_float));
+                                ans.set_value(to_string(left_operand_double / right_operand_double));
+                                //ans(NUM, to_string(left_operand_double / right_operand_double));
                             }
                             else if(current_token.get_value() == "%"){
                                 ans.set_type(NUM);
-                                ans.set_value(to_string((int)left_operand_float % (int)right_operand_float));
+                                ans.set_value(to_string((int)left_operand_double % (int)right_operand_double));
                                 //cout << ans.get_value() << endl;
                             }
                             else if (current_token.get_value() == "/*") {
                                 ans.set_type(NUM);
                                 //cout << "Yes";
-                                ans.set_value(to_string((int) (left_operand_float / right_operand_float)));
+                                ans.set_value(to_string((int) (left_operand_double / right_operand_double)));
                             }
                             expression.insert(
                                 expression.begin() + i - 1, ans
@@ -457,13 +480,13 @@ class Interpreter{
                 if (contains(present_operators, "+", "-")) {
                     while (i < expression.size()) {
                         current_token = expression[i];
-                        double left_operand_float, right_operand_float;
+                        double left_operand_double, right_operand_double;
                         if (current_token.get_value() == "+" || current_token.get_value() == "-") {
                             //cout << "Yes";
                             //show_tokens(expression);
                             //cout << expression[i + 1].get_value()<< endl << expression[i - 1].get_value()<<endl;
-                            left_operand_float = stod(expression[i - 1].get_value());
-                            right_operand_float = stod(expression[i + 1].get_value());
+                            left_operand_double = stod(expression[i - 1].get_value());
+                            right_operand_double = stod(expression[i + 1].get_value());
 
                             expression.erase(
                                 expression.begin() + i - 1, expression.begin() + i + 2
@@ -471,13 +494,13 @@ class Interpreter{
                             Token ans;
                             if (current_token.get_value() == "+") {
                                 ans.set_type(NUM);
-                                ans.set_value(to_string(left_operand_float + right_operand_float));
-                            //ans(NUM, to_string(left_operand_float * right_operand_float));
+                                ans.set_value(to_string(left_operand_double + right_operand_double));
+                            //ans(NUM, to_string(left_operand_double * right_operand_double));
                             }
                             else if (current_token.get_value() == "-") {
                                 ans.set_type(NUM);
-                                ans.set_value(to_string(left_operand_float - right_operand_float));
-                                //ans(NUM, to_string(left_operand_float / right_operand_float));
+                                ans.set_value(to_string(left_operand_double - right_operand_double));
+                                //ans(NUM, to_string(left_operand_double / right_operand_double));
                             }
                             //cout << ans.repr()<< endl << i << endl;
                             expression.insert(
@@ -497,12 +520,12 @@ class Interpreter{
                 if (contains(present_operators, "<", "<=", ">", ">=")) {
                     while (i < expression.size()) {
                         current_token = expression[i];
-                        double left_operand_float, right_operand_float;
+                        double left_operand_double, right_operand_double;
                         if (current_token.get_value() == "<" || current_token.get_value() == "<=" || current_token.get_value() == ">" || current_token.get_value() == ">=") {
                             //show_tokens(expression);
                             //cout << expression[i + 1].get_value()<< endl << expression[i - 1].get_value()<<endl;
-                            left_operand_float = stod(expression[i - 1].get_value());
-                            right_operand_float = stod(expression[i + 1].get_value());
+                            left_operand_double = stod(expression[i - 1].get_value());
+                            right_operand_double = stod(expression[i + 1].get_value());
 
                             expression.erase(
                                 expression.begin() + i - 1, expression.begin() + i + 2
@@ -510,23 +533,23 @@ class Interpreter{
                             Token ans;
                             if (current_token.get_value() == "<") {
                                 ans.set_type(NUM);
-                                ans.set_value(to_string((int)(left_operand_float < right_operand_float)));
-                            //ans(NUM, to_string(left_operand_float * right_operand_float));
+                                ans.set_value(to_string((int)(left_operand_double < right_operand_double)));
+                            //ans(NUM, to_string(left_operand_double * right_operand_double));
                             }
                             else if (current_token.get_value() == "<=") {
                                 ans.set_type(NUM);
-                                ans.set_value(to_string((int)(left_operand_float <= right_operand_float)));
-                                //ans(NUM, to_string(left_operand_float / right_operand_float));
+                                ans.set_value(to_string((int)(left_operand_double <= right_operand_double)));
+                                //ans(NUM, to_string(left_operand_double / right_operand_double));
                             }
                             else if (current_token.get_value() == ">") {
                                 ans.set_type(NUM);
-                                ans.set_value(to_string((int)(left_operand_float > right_operand_float)));
-                                //ans(NUM, to_string(left_operand_float / right_operand_float));
+                                ans.set_value(to_string((int)(left_operand_double > right_operand_double)));
+                                //ans(NUM, to_string(left_operand_double / right_operand_double));
                             }
                             else if (current_token.get_value() == ">=") {
                                 ans.set_type(NUM);
-                                ans.set_value(to_string((int)(left_operand_float >= right_operand_float)));
-                                //ans(NUM, to_string(left_operand_float / right_operand_float));
+                                ans.set_value(to_string((int)(left_operand_double >= right_operand_double)));
+                                //ans(NUM, to_string(left_operand_double / right_operand_double));
                             }
                             //cout << ans.repr()<< endl << i << endl;
                             expression.insert(
@@ -544,15 +567,15 @@ class Interpreter{
                 if (contains(present_operators, "==", "!=")) {
                     while (i < expression.size()) {
                         current_token = expression[i];
-                        double left_operand_float, right_operand_float;
+                        double left_operand_double, right_operand_double;
                         string right_operand_string, left_operand_string;
                         if (current_token.get_value() == "==" || current_token.get_value() == "!=") {
                             //cout << "New" << endl;
                             //show_tokens(expression);
                             //cout << expression[i + 1].get_value()<< endl << expression[i - 1].get_value()<<endl;
                             if (expression[i - 1].get_type() == NUM && expression[i + 1].get_type() == NUM) {
-                                left_operand_float = stod(expression[i - 1].get_value());
-                                right_operand_float = stod(expression[i + 1].get_value());
+                                left_operand_double = stod(expression[i - 1].get_value());
+                                right_operand_double = stod(expression[i + 1].get_value());
                             }
                             else if (expression[i - 1].get_type() == STR && expression[i + 1].get_type() == STR){
                                 left_operand_string = expression[i - 1].get_value();
@@ -563,18 +586,18 @@ class Interpreter{
                             if (current_token.get_value() == "==") {
                                 ans.set_type(NUM);
                                 if (expression[i - 1].get_type() == NUM && expression[i + 1].get_type() == NUM)
-                                    ans.set_value(to_string((int)(left_operand_float == right_operand_float)));
+                                    ans.set_value(to_string((int)(left_operand_double == right_operand_double)));
                                 else if ((expression[i - 1].get_type() == STR && expression[i + 1].get_type() == STR))
                                     ans.set_value(to_string((int)(left_operand_string == right_operand_string)));
-                            //ans(NUM, to_string(left_operand_float * right_operand_float));
+                            //ans(NUM, to_string(left_operand_double * right_operand_double));
                             }
                             else if (current_token.get_value() == "!=") {
                                 ans.set_type(NUM);
                                 if (expression[i - 1].get_type() == NUM && expression[i + 1].get_type() == NUM)
-                                    ans.set_value(to_string((int)(left_operand_float != right_operand_float)));
+                                    ans.set_value(to_string((int)(left_operand_double != right_operand_double)));
                                 else if ((expression[i - 1].get_type() == STR && expression[i + 1].get_type() == STR))
                                     ans.set_value(to_string((int)(left_operand_string != right_operand_string)));
-                                //ans(NUM, to_string(left_operand_float / right_operand_float));
+                                //ans(NUM, to_string(left_operand_double / right_operand_double));
                             }
                             expression.erase(
                                 expression.begin() + i - 1, expression.begin() + i + 2
@@ -631,10 +654,11 @@ class Interpreter{
         }
 
         void interpret(vector<string> ass_code) {
-            //vars.show_all();
+            //cout << "Hello" << endl;
             string print_buffer;
             int max_buffer_size = 100;
             vars.store("endl", STR, "\n");
+            //vars.show_all();
             //ifstream in("program.nv");
             string line;
             //while(getline(in, line)) ass_code.push_back(line);
@@ -653,6 +677,7 @@ class Interpreter{
                     sub_line_no = line_no + 1;
                     while (ass_code[sub_line_no] != ";") {
                         //cout << evaluate(tokenize_line(ass_code[sub_line_no])).get_value();
+                        //cout << "Hello";
                         print_buffer += evaluate(tokenize_line(ass_code[sub_line_no])).get_value();
                         
                         sub_line_no++;
@@ -699,7 +724,7 @@ class Interpreter{
                         Variable &var = vars.get(ass_code[sub_line_no]);
                         //cout << var.get_value();
                         if (var.get_data_type() == NUM) {
-                            float num;
+                            double num;
                             cin >> num;
                             //vars.show_all();
                             vars.edit(ass_code[sub_line_no], to_string(num));
@@ -1166,6 +1191,7 @@ int main(int argc, char* argv[]) {
     jhapascript.read(file_path);
     //jhapascript.show_raw_code();
     vector<string> ass_code = jhapascript.translate_to_ass_code();
+    //for (int i = 0; i < ass_code.size(); i++) cout << ass_code[i] << endl;
     clock_t start = clock();   // Start timing
     jhapascript.interpret(ass_code);
     clock_t end = clock();     // End timing
