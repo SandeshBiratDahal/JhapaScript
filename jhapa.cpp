@@ -1,12 +1,12 @@
 //JHAPASCRIPT: 0.1
-#include<iostream>
-#include<fstream>
-#include<vector>
-#include<map>
-#include<string>
-#include<conio.h>
+#include <iostream>
+#include <fstream>
+#include <vector>
+#include <map>
+#include <string>
+#include <conio.h>
 #include <ctime>
-#include<string.h>
+#include <string.h>
 #include "tokens.cpp"
 #include "utilities.cpp"
 #include "variables_storage.cpp"
@@ -232,6 +232,22 @@ class Interpreter{
                         tokens.emplace_back("operator:and", "&&");
                         i++;
                     }
+                }
+
+                else if (letter == '{') {
+                    tokens.emplace_back("leftbraces", "{");
+                }
+
+                else if (letter == '}') {
+                    tokens.emplace_back("rightbraces", "}");
+                }
+
+                else if (letter == '[') {
+                    tokens.emplace_back("leftsquares", "[");
+                }
+
+                else if (letter == ']') {
+                    tokens.emplace_back("rightsquares", "]");
                 }
 
                 i++;
@@ -615,6 +631,7 @@ class Interpreter{
         }
 
         void interpret(vector<string> ass_code) {
+            //vars.show_all();
             string print_buffer;
             int max_buffer_size = 100;
             vars.store("endl", STR, "\n");
@@ -626,6 +643,7 @@ class Interpreter{
             int no_of_steps = 0;
 
             while (line_no < ass_code.size() && line_no >= 0) {
+                //vars.show_all();
                 no_of_steps++;
                 line = ass_code[line_no];
 
@@ -1026,8 +1044,100 @@ class Interpreter{
                         ass_code.push_back("cls");
                         ass_code.push_back(";");
                     }
+
+                    else if (type == "keyword" && value == "num_array") {
+                        vector<string> declaration_ass_code;
+                        vector<string> initialization_ass_code;
+
+                        int depth = 0;
+                        vector<int> depth_count;
+                        string current_array = "";
+                        current_expression = "";
+                        int i = 1;
+                        while (i < tokens.size()) {
+                            //cout << i << endl;
+                            if (tokens[i].get_type() == "identifier" && depth == 0 && tokens[i + 1].get_type() == "operator:assignment") {
+                                current_array = tokens[i].get_value();
+                                i++;
+                            }
+
+                            if (tokens[i].get_type() == "leftbraces") {
+                                depth++;
+                                depth_count.push_back(0);
+                                //cout << depth_count[0];
+                            }
+                            else if (tokens[i].get_type() == "rightbraces") {
+                                if (current_expression != "") {
+                                    string cur_var = "";
+                                    //cout << depth_count[0] << endl;
+                                    for (int j = 0; j < depth_count.size(); j++) {
+                                        cur_var += "_" + to_string(depth_count[j]);
+                                        //cout << cur_var << endl;
+                                    }
+                                    declaration_ass_code.push_back(
+                                        current_array + cur_var
+                                    );
+                                    //cout << current_expression << endl;
+                                    initialization_ass_code.push_back(current_array + cur_var + " = " + current_expression);
+                                    current_expression = "";
+                                    
+                                }
+                                depth--;
+                                //cout << depth << endl;
+                                depth_count.pop_back();
+                                if (!depth_count.empty()) {
+                                    depth_count.back()++;
+                                }
+                            }
+                            else if (tokens[i].get_type() == "operator:comma" && depth != 0) {
+                                //cout << depth << endl;
+                                if (current_expression != "") {
+                                    string cur_var = "";
+                                    //cout << depth_count[0] << endl;
+                                    for (int j = 0; j < depth_count.size(); j++) {
+                                        cur_var += "_" + to_string(depth_count[j]);
+                                        //cout << cur_var << endl;
+                                    }
+                                    declaration_ass_code.push_back(
+                                        current_array + cur_var
+                                    );
+                                    initialization_ass_code.push_back(current_array + cur_var + " = " + current_expression);
+                                    current_expression = "";
+
+                                    //cout << cur_var << endl;
+                                    if (!depth_count.empty()) {
+                                        depth_count.back()++;
+                                    }
+                                }
+                            } 
+                            else if (tokens[i].get_type() == "operator:comma") {
+                                //cout << depth << endl;
+                                current_array = tokens[i + 1].get_value();
+                                //cout << current_array << endl;
+                                i++;
+                            }
+                            else {
+                                current_expression += tokens[i].get_value() + " ";
+                            }
+
+                            if (tokens[i].get_type() == "operator:assignment" && depth == 0) {
+                                current_expression.pop_back();
+                                current_expression.pop_back();
+                            } 
+                            //cout << i << endl;
+                            i++;
+                            //cout << current_expression << endl;
+                        }
+                        ass_code.push_back("num");
+                        for (int i = 0; i < declaration_ass_code.size(); i++) ass_code.push_back(declaration_ass_code[i]);
+                        ass_code.push_back(";");
+                        ass_code.push_back("expr");
+                        for (int i = 0; i < initialization_ass_code.size(); i++) ass_code.push_back(initialization_ass_code[i]);
+                        ass_code.push_back(";");
+                    }
                 }
                 line_no++;
+
             }
             ass_code.push_back("ext");
             ass_code.push_back(";");
@@ -1040,7 +1150,7 @@ class Interpreter{
                 }
                 out << ass_code[i] << endl;
             }
-
+            
             return ass_code;
         }
 
@@ -1054,6 +1164,7 @@ int main(int argc, char* argv[]) {
     if (argc > 1) file_path = argv[1];
     Interpreter jhapascript;
     jhapascript.read(file_path);
+    //jhapascript.show_raw_code();
     vector<string> ass_code = jhapascript.translate_to_ass_code();
     clock_t start = clock();   // Start timing
     jhapascript.interpret(ass_code);
