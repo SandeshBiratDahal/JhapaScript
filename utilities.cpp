@@ -21,11 +21,11 @@ bool contains(vector<string> a, string target1, string target2 = "X", string tar
 vector<string> generateCombinations(const vector<int>& arr) {
     vector<string> results;
 
-    long long total = 1;
+    int total = 1;
     for (int x : arr) total *= (x + 1);
 
-    for (long long num = 0; num < total; num++) {
-        long long temp = num;
+    for (int num = 0; num < total; num++) {
+        int temp = num;
         string s;
         for (int i = 0; i < arr.size(); i++) {
             int base = arr[i] + 1;

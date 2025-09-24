@@ -1100,12 +1100,11 @@ class Interpreter{
                         int i = 1;
                         //show_tokens(tokens);
                         while (i < tokens.size()) {
-                            //cout << i << endl;
-                            //cout << (tokens[i].get_type() == "identifier" && depth == 0 && tokens[i + 1].get_type() == "leftsquares") << endl;
-                            //cout << tokens[i].get_value() << endl;
+                            cout << i << endl;
                             if (tokens[i].get_type() == "identifier" && depth == 0 && tokens[i + 1].get_type() == "operator:assignment") {
                                 current_array = tokens[i].get_value();
                                 i++;
+                                //continue;
                             }
                             if (tokens[i].get_type() == "identifier" && depth == 0 && tokens[i + 1].get_type() == "leftsquares")
                             {
@@ -1134,8 +1133,7 @@ class Interpreter{
                                 continue;
 
                             }
-                            else{
-                                if (tokens[i].get_type() == "leftbraces") {
+                            if (tokens[i].get_type() == "leftbraces") {
                                 depth++;
                                 depth_count.push_back(0);
                                 //cout << depth_count[0];
@@ -1151,7 +1149,7 @@ class Interpreter{
                                     declaration_ass_code.push_back(
                                         current_array + cur_var
                                     );
-                                    //cout << current_expression << endl;
+                                    cout << current_expression << endl;
                                     initialization_ass_code.push_back(current_array + cur_var + " = " + current_expression);
                                     current_expression = "";
                                 }
@@ -1185,7 +1183,7 @@ class Interpreter{
                             } 
                             else if (tokens[i].get_type() == "operator:comma") {
                                 //cout << depth << endl;
-                                current_array = tokens[i + 1].get_value();
+                                if (i + 1 < tokens.size()) current_array = tokens[i + 1].get_value();
                                 //cout << current_array << endl;
                             }
                             else {
@@ -1196,13 +1194,10 @@ class Interpreter{
                                 current_expression.pop_back();
                                 current_expression.pop_back();
                             } 
-                            //cout << i << endl;
-                            
-                            }
-                            
+                            //cout << i << endl;                            
                             i++;
                             
-                            //cout << current_expression << endl;
+                            cout << current_expression << endl;
                         }
                         if (declaration_ass_code.size()) {
                             ass_code.push_back("num");
@@ -1215,6 +1210,7 @@ class Interpreter{
                             for (int i = 0; i < initialization_ass_code.size(); i++) ass_code.push_back(initialization_ass_code[i]);
                             ass_code.push_back(";");
                         }
+
                     }
                     //cout << if_elif_tracker.size() << "x" << line_no<< endl;
                 }
