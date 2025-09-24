@@ -42,7 +42,8 @@ class VariableStorage{
 
         void show_all() {
             for (auto &pair : storage) {
-                cout << pair.first << " -> " << pair.second.get_value() << endl;
+                if (pair.first != "endl")
+                cout << pair.first << " -> " << pair.second.get_value() << " '"<< pair.second.get_data_type() << "'"<< endl;
             }
         }
 

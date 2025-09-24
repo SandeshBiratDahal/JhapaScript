@@ -256,7 +256,7 @@ class Interpreter{
             return tokens;
         }
 
-        Token evaluate(vector<Token> expression, int depth = 0) {
+        Token evaluate(vector<Token> expression, int depth = 0, bool input_var = false) {
 
             //CONTAINS_BOOLS
             bool ASSIGNMENT = false, COMMA = false, AND = false, OR = false, NOT = false, MODULUS = false, RIGHTPARANTHESIS = false,
@@ -320,7 +320,7 @@ class Interpreter{
                         expression.erase(expression.begin() + i, expression.begin() + j + 1);
                         //show_tokens(sub_tokens);
                         expression[i - 1].set_value(
-                            expression[i - 1].get_value() + "_" + evaluate(sub_tokens, depth + 1).get_value()
+                            expression[i - 1].get_value() +"___" + evaluate(sub_tokens, depth + 1).get_value()
                         );
                         has_paranthesis = false;
                         //cout << "__NEW__" << endl;
@@ -330,6 +330,13 @@ class Interpreter{
                     i++; 
                 }
             }
+
+            if (input_var) 
+            {
+                //cout << expression[0].get_value() << endl;
+                return expression[0];
+            }
+            
 
             if (!has_paranthesis) {
                 //show_tokens(expression);
@@ -668,6 +675,7 @@ class Interpreter{
 
             while (line_no < ass_code.size() && line_no >= 0) {
                 //vars.show_all();
+                //cout << line_no << endl;
                 no_of_steps++;
                 line = ass_code[line_no];
 
@@ -688,7 +696,7 @@ class Interpreter{
                 else if (line == "num") {
                     sub_line_no = line_no + 1;
                     while (ass_code[sub_line_no] != ";") {
-                        vars.store(ass_code[sub_line_no], NUM, "0");
+                        vars.store(ass_code[sub_line_no], NUM, "0.000000");
                         sub_line_no++;
                     }
                     line_no = sub_line_no;
@@ -721,13 +729,16 @@ class Interpreter{
                     sub_line_no = line_no + 1;
                     //vars.show_all();
                     while (ass_code[sub_line_no] != ";") {
-                        Variable &var = vars.get(ass_code[sub_line_no]);
-                        //cout << var.get_value();
+                        //show_tokens(tokenize_line(ass_code[sub_line_no]));
+                        //cout << evaluate(tokenize_line(ass_code[sub_line_no])).get_value() << endl;
+                        string identifier = evaluate(tokenize_line(ass_code[sub_line_no]), 0, true).get_value();
+                        Variable &var = vars.get(identifier);
+                        //cout << identifier << endl;
                         if (var.get_data_type() == NUM) {
                             double num;
                             cin >> num;
                             //vars.show_all();
-                            vars.edit(ass_code[sub_line_no], to_string(num));
+                            vars.edit(identifier, to_string(num));
                             //var.set_value(to_string(num));
                             //vars.show_all();
                         }
@@ -735,25 +746,22 @@ class Interpreter{
                         else if (var.get_data_type() == STR) {
                             string str;
                             cin >> str;
-                            vars.edit(ass_code[sub_line_no], str);
+                            vars.edit(identifier, str);
                         }
                         sub_line_no++;
                     }
                     line_no = sub_line_no;
+                    //vars.show_all();
                 }
 
                 else if (line == "expr") {
                     sub_line_no = line_no + 1;
-                    while (ass_code[sub_line_no] != ";") {
-                        //cout << ass_code[sub_line_no]<<endl;
-                        //vars.show_all();
-                        //show_tokens(tokenize_line(ass_code[sub_line_no]));
-                        evaluate(tokenize_line(ass_code[sub_line_no])).get_value();
+                    while (sub_line_no < ass_code.size() && ass_code[sub_line_no] != ";") {
+                        vector<Token> t = (tokenize_line(ass_code[sub_line_no]));
+                        evaluate(t).get_value();
                         sub_line_no++;
-                        //cout << sub_line_no << endl;
                     }
                     line_no = sub_line_no;
-                    //vars.show_all();
                 }
 
                 else if (line == "if") {
@@ -832,10 +840,9 @@ class Interpreter{
                                 current_expression = "";
                                 continue;
                             }
-
-                            if (tokens[i].get_type() == "identifier") {
-                                current_expression += tokens[i].get_value();
-                            }  
+                            else {
+                                current_expression += tokens[i].get_value() + " ";
+                            } 
                         }
                         ass_code.push_back(current_expression);
                         ass_code.push_back(";");
@@ -1071,6 +1078,7 @@ class Interpreter{
                     }
 
                     else if (type == "keyword" && value == "num_array") {
+                        tokens.emplace_back("operator:comma", ",");
                         vector<string> declaration_ass_code;
                         vector<string> initialization_ass_code;
 
@@ -1079,14 +1087,44 @@ class Interpreter{
                         string current_array = "";
                         current_expression = "";
                         int i = 1;
+                        //show_tokens(tokens);
                         while (i < tokens.size()) {
                             //cout << i << endl;
+                            //cout << (tokens[i].get_type() == "identifier" && depth == 0 && tokens[i + 1].get_type() == "leftsquares") << endl;
+                            //cout << tokens[i].get_value() << endl;
                             if (tokens[i].get_type() == "identifier" && depth == 0 && tokens[i + 1].get_type() == "operator:assignment") {
                                 current_array = tokens[i].get_value();
                                 i++;
                             }
+                            if (tokens[i].get_type() == "identifier" && depth == 0 && tokens[i + 1].get_type() == "leftsquares")
+                            {
+                                int j = i + 1;
+                                current_array = tokens[i].get_value();
+                                //cout << current_array << endl;
+                                vector<int> sizes;
+                                
+                                while (tokens[j].get_type() != "operator:comma" && j < tokens.size()) {
+                                    //cout << tokens[j].get_value() << endl;
+                                    if (tokens[j].get_type() == NUM) {
+                                        sizes.push_back(stod(tokens[j].get_value()) - 1);
+                                    }
+                                    j++;
+                                }
+                                vector<string> combinations = generateCombinations(sizes);
 
-                            if (tokens[i].get_type() == "leftbraces") {
+                                for (int k = 0; k < combinations.size(); k++) {
+                                    declaration_ass_code.push_back(current_array + combinations[k]);
+                                    //initialization_ass_code.push_back(current_array + combinations[k] + " = 0.000000");
+                                }
+                                
+                                i = j + 1;
+                                //cout << i << endl;
+                                //cout << tokens[i].get_value() << endl;
+                                continue;
+
+                            }
+                            else{
+                                if (tokens[i].get_type() == "leftbraces") {
                                 depth++;
                                 depth_count.push_back(0);
                                 //cout << depth_count[0];
@@ -1096,7 +1134,7 @@ class Interpreter{
                                     string cur_var = "";
                                     //cout << depth_count[0] << endl;
                                     for (int j = 0; j < depth_count.size(); j++) {
-                                        cur_var += "_" + to_string(depth_count[j]);
+                                        cur_var +="___" + to_string(depth_count[j]);
                                         //cout << cur_var << endl;
                                     }
                                     declaration_ass_code.push_back(
@@ -1105,7 +1143,6 @@ class Interpreter{
                                     //cout << current_expression << endl;
                                     initialization_ass_code.push_back(current_array + cur_var + " = " + current_expression);
                                     current_expression = "";
-                                    
                                 }
                                 depth--;
                                 //cout << depth << endl;
@@ -1120,7 +1157,7 @@ class Interpreter{
                                     string cur_var = "";
                                     //cout << depth_count[0] << endl;
                                     for (int j = 0; j < depth_count.size(); j++) {
-                                        cur_var += "_" + to_string(depth_count[j]);
+                                        cur_var +="___" + to_string(depth_count[j]);
                                         //cout << cur_var << endl;
                                     }
                                     declaration_ass_code.push_back(
@@ -1139,7 +1176,6 @@ class Interpreter{
                                 //cout << depth << endl;
                                 current_array = tokens[i + 1].get_value();
                                 //cout << current_array << endl;
-                                i++;
                             }
                             else {
                                 current_expression += tokens[i].get_value() + " ";
@@ -1150,15 +1186,24 @@ class Interpreter{
                                 current_expression.pop_back();
                             } 
                             //cout << i << endl;
+                            
+                            }
+                            
                             i++;
+                            
                             //cout << current_expression << endl;
                         }
-                        ass_code.push_back("num");
-                        for (int i = 0; i < declaration_ass_code.size(); i++) ass_code.push_back(declaration_ass_code[i]);
-                        ass_code.push_back(";");
-                        ass_code.push_back("expr");
-                        for (int i = 0; i < initialization_ass_code.size(); i++) ass_code.push_back(initialization_ass_code[i]);
-                        ass_code.push_back(";");
+                        if (declaration_ass_code.size()) {
+                            ass_code.push_back("num");
+                            for (int i = 0; i < declaration_ass_code.size(); i++) ass_code.push_back(declaration_ass_code[i]);
+                            ass_code.push_back(";");
+                        }
+
+                        if (initialization_ass_code.size()) {
+                            ass_code.push_back("expr");
+                            for (int i = 0; i < initialization_ass_code.size(); i++) ass_code.push_back(initialization_ass_code[i]);
+                            ass_code.push_back(";");
+                        }
                     }
                 }
                 line_no++;
@@ -1196,7 +1241,8 @@ int main(int argc, char* argv[]) {
     jhapascript.interpret(ass_code);
     clock_t end = clock();     // End timing
     double time_taken = double(end - start) / CLOCKS_PER_SEC; // Convert to seconds
-    cout << endl << "Time taken: " << time_taken << " seconds";
+    cout << endl << "Time taken: " << time_taken << " seconds" << endl;
+    //jhapascript.get_vars().show_all();
     return 0;
 }
 

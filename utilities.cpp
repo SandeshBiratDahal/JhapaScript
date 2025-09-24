@@ -17,3 +17,24 @@ bool contains(vector<string> a, string target1, string target2 = "X", string tar
     }
     return false;
 }
+
+vector<string> generateCombinations(const vector<int>& arr) {
+    vector<string> results;
+
+    long long total = 1;
+    for (int x : arr) total *= (x + 1);
+
+    for (long long num = 0; num < total; num++) {
+        long long temp = num;
+        string s;
+        for (int i = 0; i < arr.size(); i++) {
+            int base = arr[i] + 1;
+            int digit = temp % base;
+            temp /= base;
+            s += "___" + to_string(digit);
+        }
+        results.push_back(s);
+    }
+
+    return results;
+}
