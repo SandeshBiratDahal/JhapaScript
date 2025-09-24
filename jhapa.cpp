@@ -1100,7 +1100,7 @@ class Interpreter{
                         int i = 1;
                         //show_tokens(tokens);
                         while (i < tokens.size()) {
-                            cout << i << endl;
+                            //cout << i << endl;
                             if (tokens[i].get_type() == "identifier" && depth == 0 && tokens[i + 1].get_type() == "operator:assignment") {
                                 current_array = tokens[i].get_value();
                                 i++;
@@ -1149,7 +1149,7 @@ class Interpreter{
                                     declaration_ass_code.push_back(
                                         current_array + cur_var
                                     );
-                                    cout << current_expression << endl;
+                                    //cout << current_expression << endl;
                                     initialization_ass_code.push_back(current_array + cur_var + " = " + current_expression);
                                     current_expression = "";
                                 }
@@ -1197,7 +1197,7 @@ class Interpreter{
                             //cout << i << endl;                            
                             i++;
                             
-                            cout << current_expression << endl;
+                            //cout << current_expression << endl;
                         }
                         if (declaration_ass_code.size()) {
                             ass_code.push_back("num");
