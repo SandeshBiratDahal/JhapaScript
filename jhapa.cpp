@@ -36,7 +36,7 @@ class Interpreter{
     vector<int> if_tracker, while_break_tracker, while_continue_tracker, for_break_tracker, for_continue_tracker;
     vector<char> loops;
     vector<vector<int>> if_elif_tracker;
-    string last_conditional;
+    vector<vector<string>> last_conditional;
 
     string last_loop;
     public:
@@ -116,7 +116,7 @@ class Interpreter{
                         j++;
                     }
                     
-                    if (tokens.size() >= 2 && tokens[tokens.size() - 1].get_value() == "-" && tokens[tokens.size() - 2].get_type() != NUM) {
+                    if (tokens.size() >= 2 && tokens[tokens.size() - 1].get_value() == "-" && (tokens[tokens.size() - 2].get_type() == "operator:plus" || tokens[tokens.size() - 2].get_type() == "operator:minus")) {
                         tokens.erase(
                             tokens.begin() + tokens.size() - 1
                         );
@@ -124,6 +124,7 @@ class Interpreter{
                         else tokens.emplace_back(NUM, "-" + current_token + ".000000");
                     }
                     else {
+                        //cout << "Yes" << endl;
                         if (has_decimal) tokens.emplace_back(NUM, current_token);
                         else tokens.emplace_back(NUM, current_token + ".000000");
                     }
@@ -758,7 +759,9 @@ class Interpreter{
                     sub_line_no = line_no + 1;
                     while (sub_line_no < ass_code.size() && ass_code[sub_line_no] != ";") {
                         vector<Token> t = (tokenize_line(ass_code[sub_line_no]));
-                        evaluate(t).get_value();
+                        //cout << "--NEW--" << endl;
+                        //show_tokens(t);
+                        evaluate(t);
                         sub_line_no++;
                     }
                     line_no = sub_line_no;
@@ -797,8 +800,9 @@ class Interpreter{
             int line_no = 0, sub_line_no = 0;
             vector<int> trackers;
             int endable_keywords_tracker = 0;
-
+            
             while (line_no < code_lines.size()) {
+                //cout << line_no << endl;
                 vector<Token> tokens = tokenize_line("", line_no);
                 if (tokens.size()) {
                     string line = code_lines[line_no], type = tokens[0].get_type(), value = tokens[0].get_value();
@@ -989,7 +993,9 @@ class Interpreter{
                         endable_keywords_tracker--;
                         ass_code.push_back("goto");
                         ass_code.push_back(to_string(trackers[trackers.size() - 1] - 2));
+                        //cout << while_break_tracker.size() << "x" << endl;
                         if (while_break_tracker.size() != 0) {
+                            //cout << ass_code[while_break_tracker[while_break_tracker.size() - 1]] << "  " << ass_code.size() << endl;
                             ass_code[while_break_tracker[while_break_tracker.size() - 1]] = to_string(ass_code.size());
                             while_break_tracker.pop_back();
                         }
@@ -999,7 +1005,7 @@ class Interpreter{
                     }
 
                     else if(type == "keyword" && value == "if") {
-                        last_conditional = "if";
+                        last_conditional.push_back({"if"});
                         if_elif_tracker.push_back({});
                         if_tracker.push_back(ass_code.size() + 2);
                         ass_code.push_back("if");
@@ -1014,7 +1020,7 @@ class Interpreter{
                     }
 
                     else if (tokens.size() > 1 && type == "keyword" && value == "else" && tokens[1].get_value() == "if") {
-                        last_conditional = "elif";
+                        last_conditional[last_conditional.size() - 1].push_back("elif");
                         ass_code.push_back("goto");
                         ass_code.push_back("PLC");
                         ass_code.push_back(";");
@@ -1033,27 +1039,32 @@ class Interpreter{
                         ass_code.push_back(";");
                     }
                     else if (type == "keyword" && value == "else") {
-                        last_conditional = "else";
+                        last_conditional.back().push_back("else");
                         ass_code.push_back("goto");
                         ass_code.push_back("PLC");
-                        ass_code[if_tracker[if_tracker.size() - 1]] = to_string(ass_code.size());
-                        if_elif_tracker[if_elif_tracker.size() - 1].push_back(ass_code.size() - 1);
+                        ass_code[if_tracker.back()] = to_string(ass_code.size());
+                        if_elif_tracker.back().push_back(ass_code.size() - 1);
+                        //cout << if_elif_tracker.back().back()<< endl;
                         if_tracker.pop_back();
                         ass_code.push_back(";");
                     }
 
                     else if (type == "keyword" && value == "endif") {
-                        if (last_conditional != "if") {
-                            while (if_elif_tracker[if_elif_tracker.size() - 1].size() > 0) {
-                                ass_code[if_elif_tracker[if_elif_tracker.size() - 1][if_elif_tracker[if_elif_tracker.size() - 1].size() - 1]] = to_string(ass_code.size());
-                                if_elif_tracker[if_elif_tracker.size() - 1].pop_back();
+                        vector<string> last_if = last_conditional.back();
+                        //cout << if_elif_tracker.back().size() << endl;
+                        if (last_if.back() != "if") {
+                            while (if_elif_tracker.back().size() != 0) {
+                                //cout << ass_code[if_elif_tracker.back().back()] << endl;
+                                ass_code[if_elif_tracker.back().back()] = to_string(ass_code.size());
+                                if_elif_tracker.back().pop_back();
                             }
-                            if_elif_tracker.pop_back();
                         }
                         else {
-                            ass_code[if_tracker[if_tracker.size() - 1]] = to_string(ass_code.size());
+                            ass_code[if_tracker.back()] = to_string(ass_code.size());
                             if_tracker.pop_back();
+                            if_elif_tracker.pop_back();
                         }
+                        last_conditional.pop_back();
                     }
 
                     else if (type == "keyword" && value == "break") {
@@ -1205,8 +1216,11 @@ class Interpreter{
                             ass_code.push_back(";");
                         }
                     }
+                    //cout << if_elif_tracker.size() << "x" << line_no<< endl;
                 }
+                
                 line_no++;
+                //for (int k = 0; k < ass_code.size(); k++) cout << ass_code[k] << endl;
 
             }
             ass_code.push_back("ext");
@@ -1250,16 +1264,16 @@ int main(int argc, char* argv[]) {
 Optimizations that could be made:
 1. Instead of looping over and over for all the present operators, we make separate variables for each operator and check by looping only once
 2. Instead of writing the raw expression to the assembly-like code, we just save the token objects and there is no need for tokenization again
-3. Using printf instead of cout as printf prints using output buffer unlike cout --DONE
+3. Using printf instead of cout as printf prints using output buffer unlike cout ||||||||||||||||||||||||||||||||||||||--DONE
 */
 
 /*
 TODO:
-1. Add &&, || and /* operators --Done
+1. Add &&, || and /* operators |||||||||||||||||||||--Done
 2. Add proper error handling
 3. Add arrays for str and num
 4. Add functions
 5. Make it able to evaluate /n's entered by user in strings
-6. Add comments --Done
+6. Add comments |||||||||||||||||||||||||||||--Done
 7. Add a way to index individual elements of a string
 */

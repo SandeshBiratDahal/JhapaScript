@@ -1,1 +1,0 @@
-initialization_ass_code.push_back(current_array + combinations[k] + " = 0.000000");
