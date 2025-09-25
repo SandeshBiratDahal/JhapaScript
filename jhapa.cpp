@@ -1058,6 +1058,7 @@ class Interpreter{
                                 ass_code[if_elif_tracker.back().back()] = to_string(ass_code.size());
                                 if_elif_tracker.back().pop_back();
                             }
+                            if_elif_tracker.pop_back();
                         }
                         else {
                             ass_code[if_tracker.back()] = to_string(ass_code.size());
