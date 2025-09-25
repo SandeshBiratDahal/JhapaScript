@@ -1,4 +1,4 @@
-//JHAPASCRIPT: 0.1
+//JHAPASCRIPT: 1.0
 #include <iostream>
 #include <fstream>
 #include <vector>
@@ -15,6 +15,7 @@ using namespace std;
 
 //DATA TYPES
 string NUM = "num", STR = "str";
+string DECIMAL_SUFFIX = ".000000";
 
 // Used to translate from high level syntax to assembly-like code
 class Interpreter{
@@ -116,17 +117,18 @@ class Interpreter{
                         j++;
                     }
                     
-                    if (tokens.size() >= 2 && tokens[tokens.size() - 1].get_value() == "-" && (tokens[tokens.size() - 2].get_type() == "operator:plus" || tokens[tokens.size() - 2].get_type() == "operator:minus")) {
-                        tokens.erase(
-                            tokens.begin() + tokens.size() - 1
-                        );
+                    if (tokens.size() >= 2 && tokens[tokens.size() - 1].get_value() == "-" && (tokens[tokens.size() - 2].get_type() == NUM || tokens[tokens.size() - 2].get_type() == "identifier")) {
+                        if (has_decimal) tokens.emplace_back(NUM, current_token);
+                        else tokens.emplace_back(NUM, current_token + DECIMAL_SUFFIX);
+                    }
+                    else if (tokens.size() >= 1 && tokens[tokens.size() - 1].get_value() == "-") {
+                        tokens.erase(tokens.begin() + tokens.size() - 1);
                         if (has_decimal) tokens.emplace_back(NUM, "-" + current_token);
-                        else tokens.emplace_back(NUM, "-" + current_token + ".000000");
+                        else tokens.emplace_back(NUM, "-" + current_token + DECIMAL_SUFFIX);
                     }
                     else {
-                        //cout << "Yes" << endl;
                         if (has_decimal) tokens.emplace_back(NUM, current_token);
-                        else tokens.emplace_back(NUM, current_token + ".000000");
+                        else tokens.emplace_back(NUM, current_token + DECIMAL_SUFFIX);
                     }
 
                     i = j - 1;
