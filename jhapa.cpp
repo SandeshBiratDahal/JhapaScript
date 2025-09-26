@@ -29,7 +29,7 @@ class Interpreter{
 
     vector<string> keywords = 
     {
-        "num", "str", "for", "loop", "if", "end", "else", "print", "input", "while", "endif", "break", "continue", "clear", "num_array"
+        "num", "str", "for", "loop", "if", "end", "else", "print", "input", "while", "endif", "break", "continue", "clear", "num_array", "str_array"
     };
 
     VariableStorage vars;
@@ -117,11 +117,11 @@ class Interpreter{
                         j++;
                     }
                     
-                    if (tokens.size() >= 2 && tokens[tokens.size() - 1].get_value() == "-" && (tokens[tokens.size() - 2].get_type() == NUM || tokens[tokens.size() - 2].get_type() == "identifier")) {
+                    if (tokens.size() >= 2 && tokens.back().get_value() == "-" && (tokens[tokens.size() - 2].get_type() == NUM || tokens[tokens.size() - 2].get_type() == "identifier")) {
                         if (has_decimal) tokens.emplace_back(NUM, current_token);
                         else tokens.emplace_back(NUM, current_token + DECIMAL_SUFFIX);
                     }
-                    else if (tokens.size() >= 1 && tokens[tokens.size() - 1].get_value() == "-") {
+                    else if (tokens.size() >= 1 && tokens.back().get_value() == "-") {
                         tokens.erase(tokens.begin() + tokens.size() - 1);
                         if (has_decimal) tokens.emplace_back(NUM, "-" + current_token);
                         else tokens.emplace_back(NUM, "-" + current_token + DECIMAL_SUFFIX);
@@ -262,26 +262,44 @@ class Interpreter{
         Token evaluate(vector<Token> expression, int depth = 0, bool input_var = false) {
 
             //CONTAINS_BOOLS
-            bool ASSIGNMENT = false, COMMA = false, AND = false, OR = false, NOT = false, MODULUS = false, RIGHTPARANTHESIS = false,
+            bool ASSIGNMENT = false, COMMA = false, AND = false, OR = false, NOT = false, MODULUS = false, LEFTPARANTHESIS = false,
             DOT = false, LESSTHAN = false, GREATERTHAN = false, LESSTHANEQ = false, GREATERTHANEQ = false, EQUALSTO = false, PLUS = false,
-            MINUS = false, MULTIPLY = false, DIVIDE = false, INTEGERDIVIDE = false;
+            MINUS = false, MULTIPLY = false, DIVIDE = false, INTEGERDIVIDE = false, LEFTSQUARES = false, NOTEQUALSTO = false;
             //cout << "Depth: " << depth << endl;
-
-            vector<string> present_operators;
-
+            //vector<string> present_operators;
+            string _type;
             for (int i = 0; i < expression.size(); i++) {
-                if (expression[i].get_type().substr(0, 8) == "operator" || expression[i].get_type() == "leftparanthesis" || expression[i].get_type() == "leftsquares") {
-                    present_operators.push_back(expression[i].get_value());
-                    //cout << expression[i].get_value() << endl;
-                }
+                _type = expression[i].get_type();
+                if (_type == "operator:assignment") ASSIGNMENT = true;
+                else if (_type == "operator:comma") COMMA = true;
+                else if (_type == "operator:and") AND = true;
+                else if (_type == "operator:or") OR = true;
+                else if (_type == "operator:not") NOT = true;
+                else if (_type == "operator:modulus") MODULUS = true;
+                else if (_type == "leftparanthesis") LEFTPARANTHESIS = true;
+                else if (_type == "operator:dot") DOT = true;
+                else if (_type == "operator:lesser") LESSTHAN = true;
+                else if (_type == "operator:greater") GREATERTHAN= true;
+                else if (_type == "operator:lesserorequal") LESSTHANEQ = true;
+                else if (_type == "operator:greaterorequal") GREATERTHANEQ = true;
+                else if (_type == "operator:equal") EQUALSTO = true;
+                else if (_type == "operator:plus") PLUS = true;
+                else if (_type == "operator:minus") MINUS = true;
+                else if (_type == "operator:multiply") MULTIPLY = true;
+                else if (_type == "operator:divide") DIVIDE = true;
+                else if (_type == "operator:integerdivide") INTEGERDIVIDE = true;
+                else if (_type == "leftsquares") LEFTSQUARES = true;
+                else if (_type == "operator:notequal") NOTEQUALSTO = true;
+                // if (expression[i].get_type().substr(0, 8) == "operator" || expression[i].get_type() == "leftparanthesis" || expression[i].get_type() == "leftsquares") {
+                //     present_operators.push_back(expression[i].get_value());
+                //     //cout << expression[i].get_value() << endl;
+                // }
             }
 
             bool has_paranthesis = false;
             int i = 0;
             Token current_token;
-
-            if (contains(present_operators, "(", "[")) {
-                //cout << "Hello" << endl;
+            if (LEFTPARANTHESIS || LEFTSQUARES) {
                 while (i < expression.size()){
                     current_token = expression[i];
                     //cout << current_token.get_value() << endl;
@@ -365,7 +383,7 @@ class Interpreter{
                 i = 0;
                 //For assignment operator
                 // I AM GOING TO DIE FIXING THIS AAAAAAAAAAAAAAAAAAAAA
-                if (contains(present_operators, "=")) {
+                if (ASSIGNMENT) {
                     while (i < expression.size()) {
                         current_token = expression[i];
                         if (current_token.get_value() == "=" && expression[i - 1].get_type() == "identifier") {
@@ -397,7 +415,7 @@ class Interpreter{
 
                 //for !
                 i = expression.size() - 1;
-                if (contains(present_operators, "!")) {
+                if (NOT) {
                     while (i >= 0) {
                         current_token = expression[i];
                         double right_operand_double;
@@ -415,7 +433,7 @@ class Interpreter{
                 }
                 i = 0;
                 //Highest Priority for * and /
-                if (contains(present_operators, "*", "/", "+", "%", "/*")) {
+                if (MULTIPLY || DIVIDE || PLUS || MODULUS || INTEGERDIVIDE) {
                     //cout << "Yes";
                     //show_tokens(expression);
                     while (i < expression.size()) {
@@ -487,7 +505,7 @@ class Interpreter{
 
                 i = 0;
                 // FOr + and -
-                if (contains(present_operators, "+", "-")) {
+                if (PLUS || MINUS) {
                     while (i < expression.size()) {
                         current_token = expression[i];
                         double left_operand_double, right_operand_double;
@@ -527,7 +545,7 @@ class Interpreter{
 
                 i = 0;
                 // for <,>, <=, >=
-                if (contains(present_operators, "<", "<=", ">", ">=")) {
+                if (LESSTHAN || LESSTHANEQ || GREATERTHAN || GREATERTHANEQ) {
                     while (i < expression.size()) {
                         current_token = expression[i];
                         double left_operand_double, right_operand_double;
@@ -574,7 +592,7 @@ class Interpreter{
 
                 i = 0;
                 // for != and ==
-                if (contains(present_operators, "==", "!=")) {
+                if (EQUALSTO || NOTEQUALSTO) {
                     while (i < expression.size()) {
                         current_token = expression[i];
                         double left_operand_double, right_operand_double;
@@ -624,7 +642,7 @@ class Interpreter{
                     }
                 }
                 i = 0;
-                if (contains(present_operators, "&&", "||")) {
+                if (AND || OR) {
                     //show_tokens(expression);
                     while (i < expression.size()) {
                         current_token = expression[i];
@@ -966,43 +984,43 @@ class Interpreter{
 
                     else if (type == "keyword" && value == "loop") {
                         if (for_continue_tracker.size() != 0) {
-                            ass_code[for_continue_tracker[for_continue_tracker.size() - 1]] = to_string(ass_code.size());
+                            ass_code[for_continue_tracker.back()] = to_string(ass_code.size());
                             for_continue_tracker.pop_back();
                         }
-                        string loop_var = ass_code[trackers[trackers.size() - 1]];
-                        string increment = ass_code[trackers[trackers.size() - 1] + 1];
+                        string loop_var = ass_code[trackers.back()];
+                        string increment = ass_code[trackers.back() + 1];
                         ass_code.push_back("expr");
                         ass_code.push_back(loop_var + " = " + loop_var + " + " + increment);
                         ass_code.push_back(";");
                         endable_keywords_tracker--;
                         ass_code.push_back("goto");
-                        ass_code.push_back(to_string(trackers[trackers.size() - 1] - 2));
+                        ass_code.push_back(to_string(trackers.back() - 2));
                         if (for_break_tracker.size() != 0) {
-                            ass_code[for_break_tracker[for_break_tracker.size() - 1]] = to_string(ass_code.size());
+                            ass_code[for_break_tracker.back()] = to_string(ass_code.size());
                             for_break_tracker.pop_back();
                         }
                         ass_code.push_back(";");
-                        ass_code[trackers[trackers.size() - 1]] = to_string(ass_code.size());
-                        ass_code[trackers[trackers.size() - 1] + 1] = ";";
+                        ass_code[trackers.back()] = to_string(ass_code.size());
+                        ass_code[trackers.back() + 1] = ";";
                         trackers.pop_back();
                     }
 
                     else if (type == "keyword" && value == "end") {
                         if (while_continue_tracker.size() != 0) {
-                            ass_code[while_continue_tracker[while_continue_tracker.size() - 1]] = to_string(ass_code.size());
+                            ass_code[while_continue_tracker.back()] = to_string(ass_code.size());
                             while_continue_tracker.pop_back();
                         }
                         endable_keywords_tracker--;
                         ass_code.push_back("goto");
-                        ass_code.push_back(to_string(trackers[trackers.size() - 1] - 2));
+                        ass_code.push_back(to_string(trackers.back() - 2));
                         //cout << while_break_tracker.size() << "x" << endl;
                         if (while_break_tracker.size() != 0) {
                             //cout << ass_code[while_break_tracker[while_break_tracker.size() - 1]] << "  " << ass_code.size() << endl;
-                            ass_code[while_break_tracker[while_break_tracker.size() - 1]] = to_string(ass_code.size());
+                            ass_code[while_break_tracker.back()] = to_string(ass_code.size());
                             while_break_tracker.pop_back();
                         }
                         ass_code.push_back(";");
-                        ass_code[trackers[trackers.size() - 1]] = to_string(ass_code.size());
+                        ass_code[trackers.back()] = to_string(ass_code.size());
                         trackers.pop_back();
                     }
 
@@ -1022,12 +1040,12 @@ class Interpreter{
                     }
 
                     else if (tokens.size() > 1 && type == "keyword" && value == "else" && tokens[1].get_value() == "if") {
-                        last_conditional[last_conditional.size() - 1].push_back("elif");
+                        last_conditional.back().push_back("elif");
                         ass_code.push_back("goto");
                         ass_code.push_back("PLC");
                         ass_code.push_back(";");
-                        ass_code[if_tracker[if_tracker.size() - 1]] = to_string(ass_code.size());
-                        if_elif_tracker[if_elif_tracker.size() - 1].push_back(ass_code.size() - 2);
+                        ass_code[if_tracker.back()] = to_string(ass_code.size());
+                        if_elif_tracker.back().push_back(ass_code.size() - 2);
                         if_tracker.pop_back();
                         if_tracker.push_back(ass_code.size() + 2);
                         ass_code.push_back("if");
@@ -1072,7 +1090,7 @@ class Interpreter{
 
                     else if (type == "keyword" && value == "break") {
                         ass_code.push_back("goto");
-                        if (loops[loops.size() - 1] == 'f') for_break_tracker.push_back(ass_code.size());
+                        if (loops.back() == 'f') for_break_tracker.push_back(ass_code.size());
                         else while_break_tracker.push_back(ass_code.size());
                         ass_code.push_back("PLC");
                         ass_code.push_back(";");
@@ -1080,7 +1098,7 @@ class Interpreter{
 
                     else if (type == "keyword" && value == "continue") {
                         ass_code.push_back("goto");
-                        if (loops[loops.size() - 1] == 'f') for_continue_tracker.push_back(ass_code.size());
+                        if (loops.back() == 'f') for_continue_tracker.push_back(ass_code.size());
                         else while_continue_tracker.push_back(ass_code.size());
                         ass_code.push_back("PLC");
                         ass_code.push_back(";");
@@ -1091,7 +1109,7 @@ class Interpreter{
                         ass_code.push_back(";");
                     }
 
-                    else if (type == "keyword" && value == "num_array") {
+                    else if (type == "keyword" && (value == "num_array" || value == "str_array")) {
                         tokens.emplace_back("operator:comma", ",");
                         vector<string> declaration_ass_code;
                         vector<string> initialization_ass_code;
@@ -1153,7 +1171,11 @@ class Interpreter{
                                         current_array + cur_var
                                     );
                                     //cout << current_expression << endl;
-                                    initialization_ass_code.push_back(current_array + cur_var + " = " + current_expression);
+                                    current_expression.pop_back();
+                                    if (value == "num_array")
+                                        initialization_ass_code.push_back(current_array + cur_var + " = " + current_expression);
+                                    else
+                                        initialization_ass_code.push_back(current_array + cur_var + " = \"" + current_expression + "\"");
                                     current_expression = "";
                                 }
                                 depth--;
@@ -1175,7 +1197,11 @@ class Interpreter{
                                     declaration_ass_code.push_back(
                                         current_array + cur_var
                                     );
-                                    initialization_ass_code.push_back(current_array + cur_var + " = " + current_expression);
+                                    current_expression.pop_back();
+                                    if (value == "num_array")
+                                        initialization_ass_code.push_back(current_array + cur_var + " = " + current_expression);
+                                    else
+                                        initialization_ass_code.push_back(current_array + cur_var + " = \"" + current_expression + "\"");
                                     current_expression = "";
 
                                     //cout << cur_var << endl;
@@ -1203,7 +1229,10 @@ class Interpreter{
                             //cout << current_expression << endl;
                         }
                         if (declaration_ass_code.size()) {
-                            ass_code.push_back("num");
+                            if (value == "num_array")
+                                ass_code.push_back(NUM);
+                            else
+                                ass_code.push_back(STR);
                             for (int i = 0; i < declaration_ass_code.size(); i++) ass_code.push_back(declaration_ass_code[i]);
                             ass_code.push_back(";");
                         }
@@ -1261,7 +1290,7 @@ int main(int argc, char* argv[]) {
 
 /*
 Optimizations that could be made:
-1. Instead of looping over and over for all the present operators, we make separate variables for each operator and check by looping only once
+1. Instead of looping over and over for all the present operators, we make separate variables for each operator and check by looping only once |||||||||||||||||||||||--DONE
 2. Instead of writing the raw expression to the assembly-like code, we just save the token objects and there is no need for tokenization again
 3. Using printf instead of cout as printf prints using output buffer unlike cout ||||||||||||||||||||||||||||||||||||||--DONE
 */
@@ -1270,7 +1299,7 @@ Optimizations that could be made:
 TODO:
 1. Add &&, || and /* operators |||||||||||||||||||||--Done
 2. Add proper error handling
-3. Add arrays for str and num
+3. Add arrays for str and num  |||||||||||||||||||||--DONE
 4. Add functions
 5. Make it able to evaluate /n's entered by user in strings
 6. Add comments |||||||||||||||||||||||||||||--Done
