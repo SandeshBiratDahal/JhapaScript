@@ -1,0 +1,92 @@
+// TIC TAC TOE (no to_num) — read numeric input directly
+str_array board[9]
+num i, turn, winner, pos_num, pos
+str current
+
+// initialize board
+for i = 0, i < 9
+    board[i] = " "
+loop
+
+winner = 0
+turn = 0
+current = "X"
+
+// game loop (max 9 moves)
+for turn = 0, turn < 9
+    // print board
+    print board[0], " | ", board[1], " | ", board[2], endl
+    print "--+---+--", endl
+    print board[3], " | ", board[4], " | ", board[5], endl
+    print "--+---+--", endl
+    print board[6], " | ", board[7], " | ", board[8], endl
+
+    print "Player ", current, " enter position (1-9): ", endl
+    input pos_num        // read directly into a numeric variable
+
+    // validate input range
+    if pos_num < 1
+        print "Invalid position! Must be 1..9", endl
+        continue
+    endif
+    if pos_num > 9
+        print "Invalid position! Must be 1..9", endl
+        continue
+    endif
+
+    pos = pos_num - 1   // convert to 0-based index
+
+    // check cell free
+    if board[pos] == " "
+        board[pos] = current
+    else
+        print "Cell already taken! Try again.", endl
+        continue
+    endif
+
+    // check rows
+    if board[0] == current && board[1] == current && board[2] == current
+        winner = 1
+    endif
+    if board[3] == current && board[4] == current && board[5] == current
+        winner = 1
+    endif
+    if board[6] == current && board[7] == current && board[8] == current
+        winner = 1
+    endif
+
+    // check cols
+    if board[0] == current && board[3] == current && board[6] == current
+        winner = 1
+    endif
+    if board[1] == current && board[4] == current && board[7] == current
+        winner = 1
+    endif
+    if board[2] == current && board[5] == current && board[8] == current
+        winner = 1
+    endif
+
+    // check diagonals
+    if board[0] == current && board[4] == current && board[8] == current
+        winner = 1
+    endif
+    if board[2] == current && board[4] == current && board[6] == current
+        winner = 1
+    endif
+
+    if winner == 1
+        print "Player ", current, " WINS!", endl
+        break
+    endif
+
+    // switch player
+    if current == "X"
+        current = "O"
+    else
+        current = "X"
+    endif
+loop
+
+if winner == 0
+    print "It's a DRAW!", endl
+endif

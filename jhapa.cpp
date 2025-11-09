@@ -16,6 +16,7 @@ using namespace std;
 //DATA TYPES
 string NUM = "num", STR = "str";
 string DECIMAL_SUFFIX = ".000000";
+string SEMICOLON = ";";
 
 // Used to translate from high level syntax to assembly-like code
 class Interpreter{
@@ -95,7 +96,15 @@ class Interpreter{
                         j++;
                     }
 
-                    if (find(keywords, current_token) != -1) tokens.emplace_back("keyword", current_token);
+                    if (find(keywords, current_token) != -1) {
+                        if ((current_token == "num" || current_token == "str") && line[j] == '[' && line[j + 1] == ']') {
+                            j += 2;
+                            tokens.emplace_back("keyword", current_token + "_array");
+                        }
+                        else{
+                            tokens.emplace_back("keyword", current_token);
+                        }
+                    }
                     else tokens.emplace_back("identifier", current_token);
 
                     i = j - 1;
@@ -260,7 +269,6 @@ class Interpreter{
         }
 
         Token evaluate(vector<Token> expression, int depth = 0, bool input_var = false) {
-
             //CONTAINS_BOOLS
             bool ASSIGNMENT = false, COMMA = false, AND = false, OR = false, NOT = false, MODULUS = false, LEFTPARANTHESIS = false,
             DOT = false, LESSTHAN = false, GREATERTHAN = false, LESSTHANEQ = false, GREATERTHANEQ = false, EQUALSTO = false, PLUS = false,
@@ -704,7 +712,7 @@ class Interpreter{
 
                 else if (line == "prt") {
                     sub_line_no = line_no + 1;
-                    while (ass_code[sub_line_no] != ";") {
+                    while (ass_code[sub_line_no] != SEMICOLON) {
                         //cout << evaluate(tokenize_line(ass_code[sub_line_no])).get_value();
                         //cout << "Hello";
                         print_buffer += evaluate(tokenize_line(ass_code[sub_line_no])).get_value();
@@ -716,7 +724,7 @@ class Interpreter{
 
                 else if (line == "num") {
                     sub_line_no = line_no + 1;
-                    while (ass_code[sub_line_no] != ";") {
+                    while (ass_code[sub_line_no] != SEMICOLON) {
                         vars.store(ass_code[sub_line_no], NUM, "0.000000");
                         sub_line_no++;
                     }
@@ -725,7 +733,7 @@ class Interpreter{
 
                 else if (line == "str") {
                     sub_line_no = line_no + 1;
-                    while (ass_code[sub_line_no] != ";") {
+                    while (ass_code[sub_line_no] != SEMICOLON) {
                         vars.store(ass_code[sub_line_no], STR, "");
                         sub_line_no++;
                     }
@@ -734,7 +742,7 @@ class Interpreter{
 
                 /*else if (line == "ld") {
                     sub_line_no = line_no + 1;
-                    while (ass_code[sub_line_no] != ";") {
+                    while (ass_code[sub_line_no] != SEMICOLON) {
                         vars.edit(
                             ass_code[sub_line_no],
                             evaluate(tokenize_line(ass_code[sub_line_no + 1])).get_value()
@@ -749,7 +757,7 @@ class Interpreter{
                     print_buffer = "";
                     sub_line_no = line_no + 1;
                     //vars.show_all();
-                    while (ass_code[sub_line_no] != ";") {
+                    while (ass_code[sub_line_no] != SEMICOLON) {
                         //show_tokens(tokenize_line(ass_code[sub_line_no]));
                         //cout << evaluate(tokenize_line(ass_code[sub_line_no])).get_value() << endl;
                         string identifier = evaluate(tokenize_line(ass_code[sub_line_no]), 0, true).get_value();
@@ -777,7 +785,7 @@ class Interpreter{
 
                 else if (line == "expr") {
                     sub_line_no = line_no + 1;
-                    while (sub_line_no < ass_code.size() && ass_code[sub_line_no] != ";") {
+                    while (sub_line_no < ass_code.size() && ass_code[sub_line_no] != SEMICOLON) {
                         vector<Token> t = (tokenize_line(ass_code[sub_line_no]));
                         //cout << "--NEW--" << endl;
                         //show_tokens(t);
@@ -851,7 +859,7 @@ class Interpreter{
                         if (current_expression != "") {
                             ass_code.push_back(current_expression);
                         }
-                        ass_code.push_back(";");
+                        ass_code.push_back(SEMICOLON);
                     }
 
                     else if (type == "keyword" && value == "input") {
@@ -869,7 +877,7 @@ class Interpreter{
                             } 
                         }
                         ass_code.push_back(current_expression);
-                        ass_code.push_back(";");
+                        ass_code.push_back(SEMICOLON);
                     }
 
                     else if (type == "keyword" && (value == STR || value == NUM)) {
@@ -907,7 +915,7 @@ class Interpreter{
                         for (int i = 0; i < declared.size(); i++) {
                             ass_code.push_back(declared[i]);
                         }
-                        ass_code.push_back(";");
+                        ass_code.push_back(SEMICOLON);
                         
                         if (initialized.size() != 0){
                             ass_code.push_back("expr");
@@ -928,7 +936,7 @@ class Interpreter{
                                     );
                                 }   
                             }
-                            ass_code.push_back(";");
+                            ass_code.push_back(SEMICOLON);
                         }
                     }
 
@@ -946,7 +954,7 @@ class Interpreter{
                         }
                         ass_code.push_back(current_expression);
                         ass_code.push_back("PLC");
-                        ass_code.push_back(";");
+                        ass_code.push_back(SEMICOLON);
 
                         trackers.push_back(ass_code.size() - 2);
                     }
@@ -973,7 +981,7 @@ class Interpreter{
                         if (expressions.size() == 2) expressions.push_back("1");
                         ass_code.push_back("expr");
                         ass_code.push_back(expressions[0]);
-                        ass_code.push_back(";");
+                        ass_code.push_back(SEMICOLON);
 
                         ass_code.push_back("if");
                         ass_code.push_back(expressions[1]);
@@ -991,7 +999,7 @@ class Interpreter{
                         string increment = ass_code[trackers.back() + 1];
                         ass_code.push_back("expr");
                         ass_code.push_back(loop_var + " = " + loop_var + " + " + increment);
-                        ass_code.push_back(";");
+                        ass_code.push_back(SEMICOLON);
                         endable_keywords_tracker--;
                         ass_code.push_back("goto");
                         ass_code.push_back(to_string(trackers.back() - 2));
@@ -999,9 +1007,9 @@ class Interpreter{
                             ass_code[for_break_tracker.back()] = to_string(ass_code.size());
                             for_break_tracker.pop_back();
                         }
-                        ass_code.push_back(";");
+                        ass_code.push_back(SEMICOLON);
                         ass_code[trackers.back()] = to_string(ass_code.size());
-                        ass_code[trackers.back() + 1] = ";";
+                        ass_code[trackers.back() + 1] = SEMICOLON;
                         trackers.pop_back();
                     }
 
@@ -1019,7 +1027,7 @@ class Interpreter{
                             ass_code[while_break_tracker.back()] = to_string(ass_code.size());
                             while_break_tracker.pop_back();
                         }
-                        ass_code.push_back(";");
+                        ass_code.push_back(SEMICOLON);
                         ass_code[trackers.back()] = to_string(ass_code.size());
                         trackers.pop_back();
                     }
@@ -1036,14 +1044,14 @@ class Interpreter{
                         }
                         ass_code.push_back(current_expression);
                         ass_code.push_back("PLC");
-                        ass_code.push_back(";");
+                        ass_code.push_back(SEMICOLON);
                     }
 
                     else if (tokens.size() > 1 && type == "keyword" && value == "else" && tokens[1].get_value() == "if") {
                         last_conditional.back().push_back("elif");
                         ass_code.push_back("goto");
                         ass_code.push_back("PLC");
-                        ass_code.push_back(";");
+                        ass_code.push_back(SEMICOLON);
                         ass_code[if_tracker.back()] = to_string(ass_code.size());
                         if_elif_tracker.back().push_back(ass_code.size() - 2);
                         if_tracker.pop_back();
@@ -1056,7 +1064,7 @@ class Interpreter{
                         }
                         ass_code.push_back(current_expression);
                         ass_code.push_back("PLC");
-                        ass_code.push_back(";");
+                        ass_code.push_back(SEMICOLON);
                     }
                     else if (type == "keyword" && value == "else") {
                         last_conditional.back().push_back("else");
@@ -1066,7 +1074,7 @@ class Interpreter{
                         if_elif_tracker.back().push_back(ass_code.size() - 1);
                         //cout << if_elif_tracker.back().back()<< endl;
                         if_tracker.pop_back();
-                        ass_code.push_back(";");
+                        ass_code.push_back(SEMICOLON);
                     }
 
                     else if (type == "keyword" && value == "endif") {
@@ -1093,7 +1101,7 @@ class Interpreter{
                         if (loops.back() == 'f') for_break_tracker.push_back(ass_code.size());
                         else while_break_tracker.push_back(ass_code.size());
                         ass_code.push_back("PLC");
-                        ass_code.push_back(";");
+                        ass_code.push_back(SEMICOLON);
                     }
 
                     else if (type == "keyword" && value == "continue") {
@@ -1101,12 +1109,12 @@ class Interpreter{
                         if (loops.back() == 'f') for_continue_tracker.push_back(ass_code.size());
                         else while_continue_tracker.push_back(ass_code.size());
                         ass_code.push_back("PLC");
-                        ass_code.push_back(";");
+                        ass_code.push_back(SEMICOLON);
                     }  
 
                     else if (type == "keyword" && value == "clear") {
                         ass_code.push_back("cls");
-                        ass_code.push_back(";");
+                        ass_code.push_back(SEMICOLON);
                     }
 
                     else if (type == "keyword" && (value == "num_array" || value == "str_array")) {
@@ -1234,13 +1242,13 @@ class Interpreter{
                             else
                                 ass_code.push_back(STR);
                             for (int i = 0; i < declaration_ass_code.size(); i++) ass_code.push_back(declaration_ass_code[i]);
-                            ass_code.push_back(";");
+                            ass_code.push_back(SEMICOLON);
                         }
 
                         if (initialization_ass_code.size()) {
                             ass_code.push_back("expr");
                             for (int i = 0; i < initialization_ass_code.size(); i++) ass_code.push_back(initialization_ass_code[i]);
-                            ass_code.push_back(";");
+                            ass_code.push_back(SEMICOLON);
                         }
 
                     }
@@ -1252,7 +1260,7 @@ class Interpreter{
 
             }
             ass_code.push_back("ext");
-            ass_code.push_back(";");
+            ass_code.push_back(SEMICOLON);
 
             ofstream out("program.ac");
             for (int i = 0; i < ass_code.size(); i++) {
