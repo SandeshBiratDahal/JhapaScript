@@ -10,6 +10,7 @@
 #include "tokens.cpp"
 #include "utilities.cpp"
 #include "variables_storage.cpp"
+#include "functions.cpp"
 
 using namespace std;
 
@@ -28,9 +29,11 @@ class Interpreter{
     string alphas = "qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM_",
     nums = "1234567890", specials = "!@#$%^&*()+{}[]:;'<>,.?/|=-~`", space = " ";
 
+    vector<Function> funcs;
+
     vector<string> keywords = 
     {
-        "num", "str", "for", "loop", "if", "end", "else", "print", "input", "while", "endif", "break", "continue", "clear", "num_array", "str_array"
+        "num", "str", "for", "loop", "if", "end", "else", "print", "input", "while", "endif", "break", "continue", "clear", "num_array", "str_array", "func", "endf", "return"
     };
 
     VariableStorage vars;
@@ -101,7 +104,7 @@ class Interpreter{
                             j += 2;
                             tokens.emplace_back("keyword", current_token + "_array");
                         }
-                        else{
+                        else {
                             tokens.emplace_back("keyword", current_token);
                         }
                     }
@@ -260,6 +263,10 @@ class Interpreter{
 
                 else if (letter == ']') {
                     tokens.emplace_back("rightsquares", "]");
+                }
+
+                else if (letter == ';') {
+                    tokens.emplace_back("semicolon", ";");
                 }
 
                 i++;
@@ -689,7 +696,10 @@ class Interpreter{
             return expression[0];
         }
 
-        void interpret(vector<string> ass_code) {
+        Token interpret(vector<string> ass_code, bool is_func = false) {
+            Token t;
+            t.set_type(NUM);
+            t.set_value("0" + DECIMAL_SUFFIX);
             //cout << "Hello" << endl;
             string print_buffer;
             int max_buffer_size = 100;
@@ -811,6 +821,13 @@ class Interpreter{
                     line_no++;
                 }
 
+                else if (line == "rtn") {
+                    if (!is_func) return t;
+
+                    return evaluate(tokenize_line(ass_code[line_no + 1]));
+                    line_no++;
+                }
+
                 if (print_buffer.size() >= max_buffer_size) {
                     printf("%s", print_buffer.c_str());
                     print_buffer = "";
@@ -820,21 +837,31 @@ class Interpreter{
             }
             //cout << print_buffer.size();
             printf("%s", print_buffer.c_str());
-            cout << endl << endl << "Number of steps: " << no_of_steps;
+            return t;
         }
 
-        vector<string> translate_to_ass_code() {
+        vector<string> translate_to_ass_code(vector<string> user_code_lines = {"\0"}, bool inside_func = false) {
             vector<string> ass_code;
             int line_no = 0, sub_line_no = 0;
             vector<int> trackers;
             int endable_keywords_tracker = 0;
+            vector<string> temp_code_lines;
+
+            if (user_code_lines[0] != "\0") {
+                temp_code_lines = user_code_lines;
+            }
+            else {
+                temp_code_lines = this -> code_lines;
+            }
             
-            while (line_no < code_lines.size()) {
+            while (line_no < temp_code_lines.size()) {
                 //cout << line_no << endl;
-                vector<Token> tokens = tokenize_line("", line_no);
+                vector<Token> tokens;
+                if (user_code_lines[0] != "\0") tokens = tokenize_line(temp_code_lines[line_no]);
+                else tokens = tokenize_line("", line_no);
+
                 if (tokens.size()) {
-                    string line = code_lines[line_no], type = tokens[0].get_type(), value = tokens[0].get_value();
-                    string current_expression = "";
+                    string line = temp_code_lines[line_no], type = tokens[0].get_type(), value = tokens[0].get_value(), current_expression = "";
 
                     if ((type == "keyword" && value == "print") || type != "keyword") {
 
@@ -968,7 +995,7 @@ class Interpreter{
                         string loop_var = tokens[1].get_value();
 
                         for (int i = 1; i < tokens.size(); i++) {
-                            if (tokens[i].get_type() == "operator:comma") {
+                            if (tokens[i].get_type() == "semicolon") {
                                 expressions.push_back(current_expression);
                                 current_expression = "";
                                 continue;
@@ -1132,6 +1159,15 @@ class Interpreter{
                             //cout << i << endl;
                             if (tokens[i].get_type() == "identifier" && depth == 0 && tokens[i + 1].get_type() == "operator:assignment") {
                                 current_array = tokens[i].get_value();
+                                ass_code.push_back("str");
+                                ass_code.push_back(current_array);
+                                ass_code.push_back(SEMICOLON);
+                                ass_code.push_back("expr");
+                                if (value == "num_array")
+                                    ass_code.push_back(current_array + " = \"<num_array object '" + current_array + "'>\"");
+                                else
+                                    ass_code.push_back(current_array + " = \"<str_array object '" + current_array + "'>\"");
+                                ass_code.push_back(SEMICOLON);
                                 i++;
                                 //continue;
                             }
@@ -1139,6 +1175,15 @@ class Interpreter{
                             {
                                 int j = i + 1;
                                 current_array = tokens[i].get_value();
+                                ass_code.push_back("str");
+                                ass_code.push_back(current_array);
+                                ass_code.push_back(SEMICOLON);
+                                ass_code.push_back("expr");
+                                if (value == "num_array")
+                                    ass_code.push_back(current_array + " = \"<num_array object '" + current_array + "'>\"");
+                                else
+                                    ass_code.push_back(current_array + " = \"<str_array object '" + current_array + "'>\"");
+                                ass_code.push_back(SEMICOLON);
                                 //cout << current_array << endl;
                                 vector<int> sizes;
                                 
@@ -1252,6 +1297,59 @@ class Interpreter{
                         }
 
                     }
+                    else if (type == "keyword" && value == "func") {
+                        //show_code_lines();
+                        Function current_function;
+                        Param current_param;
+                        string current_type;
+                        vector<string> current_function_body;
+                        current_function.name = tokens[1].get_value();
+
+                        //cout << current_function.name << endl;
+
+                        int i = 3;
+                        while (tokens[i].get_type() != "rightparanthesis") {
+                            if (tokens[i].get_type() == "keyword" && (tokens[i].get_value() == STR || tokens[i].get_value() == NUM)) {
+                                current_type = tokens[i].get_value();
+                            }
+                            else if (tokens[i].get_type() == "identifier"){
+                                current_param.name = tokens[i].get_value();
+                                current_param.type = current_type;
+                                current_function.params.push_back(current_param);
+                            }
+                            i++;
+                        }
+
+                        i = line_no + 1;
+
+                        while (i < temp_code_lines.size()) {                            
+                            Token t = tokenize_line(temp_code_lines[i])[0];
+
+                            if (t.get_type() == "keyword" && t.get_value() == "endf") {
+                                current_function.ass_code = translate_to_ass_code(current_function_body, true);
+                                break;
+                            }
+                            else {
+                                current_function_body.push_back(temp_code_lines[i]);
+                            }
+                            i++;
+                        }
+
+                        funcs.push_back(current_function);
+
+                        line_no = i - 1;
+
+                    }
+                    else if (type == "keyword" && value == "return") {
+                        ass_code.push_back("rtn");
+                        current_expression = "";
+                        for (int i = 1; i < tokens.size(); i++) {
+                            current_expression += tokens[i].get_value() + " ";
+                        }
+                        current_expression.pop_back();
+                        ass_code.push_back(current_expression);
+                        ass_code.push_back(";");
+                    }
                     //cout << if_elif_tracker.size() << "x" << line_no<< endl;
                 }
                 
@@ -1270,12 +1368,24 @@ class Interpreter{
                 }
                 out << ass_code[i] << endl;
             }
-            
             return ass_code;
         }
 
         VariableStorage get_vars() {
             return vars;
+        }
+
+        void show_all_funcs() {
+            for (int i = 0; i < this -> funcs.size(); i++) {
+                cout << funcs[i].name << endl;
+                for (int j = 0; j < funcs[i].params.size(); j++) {
+                    cout << funcs[i].params[j].type << " " << funcs[i].params[j].name << ", ";
+                }
+                cout << endl;
+                for (int j = 0; j < funcs[i].ass_code.size(); j++) {
+                    cout << funcs[i].ass_code[j] << endl;
+                }
+            }
         }
 };
 
@@ -1286,6 +1396,7 @@ int main(int argc, char* argv[]) {
     jhapascript.read(file_path);
     //jhapascript.show_raw_code();
     vector<string> ass_code = jhapascript.translate_to_ass_code();
+    jhapascript.show_all_funcs();
     //for (int i = 0; i < ass_code.size(); i++) cout << ass_code[i] << endl;
     clock_t start = clock();   // Start timing
     jhapascript.interpret(ass_code);
