@@ -30,6 +30,7 @@ class Interpreter{
     nums = "1234567890", specials = "!@#$%^&*()+{}[]:;'<>,.?/|=-~`", space = " ";
 
     vector<Function> funcs;
+    vector<string> funcs_list;
 
     vector<string> keywords = 
     {
@@ -108,7 +109,13 @@ class Interpreter{
                             tokens.emplace_back("keyword", current_token);
                         }
                     }
-                    else tokens.emplace_back("identifier", current_token);
+                    else {
+
+                        if (find(funcs_list, current_token) != -1) {
+                            tokens.emplace_back("function", current_token);
+                        }
+                        else tokens.emplace_back("identifier", current_token);
+                    }
 
                     i = j - 1;
                 }
@@ -220,7 +227,32 @@ class Interpreter{
                 }
 
                 else if (letter == '(') {
-                    tokens.emplace_back("leftparanthesis", "(");
+                    if (tokens.size() == 0 || tokens.back().get_type() != "function") tokens.emplace_back("leftparanthesis", "(");
+                    else {
+                        j = i;
+                        int depth = 0;
+                        current_token = "";
+
+                        while (true) {
+                            if (j >= line.length()) break;
+
+                            else if (depth == 1 && line[j] == ')') {
+                                tokens.emplace_back("call", current_token + ")");
+                                break;
+                            }
+                            else if (line[j] == '('){
+                                depth++;
+                            }
+                            else if (line[j] == ')') {
+                                depth--;
+                            }
+
+                            current_token += line[j];
+
+                            j++;
+                        }
+                        i = j;
+                    }
                 }
 
                 else if (letter == ')') {
@@ -389,6 +421,44 @@ class Interpreter{
                         else if (expression[i + 1].get_value() != "=") {
                             Variable var = vars.get(current_token.get_value());
                             expression[i] = Token(var.get_data_type(), var.get_value());
+                        }
+                    }
+                    else if (current_token.get_type() == "function") {
+                        Interpreter sub_process;
+                        sub_process.vars = this -> vars;
+                        sub_process.funcs = this -> funcs;
+                        sub_process.funcs_list = this -> funcs_list;
+
+                        string current_params = expression[i + 1].get_value();
+                        vector<Token> param_tokens = tokenize_line(current_params), evaluated_param_tokens, temp_tokens;
+
+                        for (int i = 1; i < param_tokens.size(); i++) {
+                            if (param_tokens[i].get_type() == "operator:comma" || param_tokens[i].get_type() == "rightparanthesis") {
+                                evaluated_param_tokens.push_back(evaluate(temp_tokens));
+                                temp_tokens.clear();
+                            }
+                            else {
+                                temp_tokens.push_back(param_tokens[i]);
+                            }
+                        }
+
+                        //show_tokens(evaluated_param_tokens);
+                        
+                        string current_function = current_token.get_value();
+                        for (int i = 0; i < funcs.size(); i++) {
+                            if (funcs[i].name == current_function) {
+                                for (int j = 0; j < funcs[i].params.size(); j++) {
+                                    sub_process.vars.store(
+                                        funcs[i].params[j].name, funcs[i].params[j].type, evaluated_param_tokens[j].get_value()
+                                    );
+                                }
+
+                                sub_process.ass_code = funcs[i].ass_code;
+                                expression[i] = sub_process.interpret(sub_process.ass_code, true);
+
+                                expression.erase(expression.begin() + i + 1);
+                                break;
+                            }
                         }
                     }
                     //show_tokens(expression);
@@ -1336,6 +1406,7 @@ class Interpreter{
                         }
 
                         funcs.push_back(current_function);
+                        funcs_list.push_back(current_function.name);
 
                         line_no = i - 1;
 
@@ -1396,7 +1467,7 @@ int main(int argc, char* argv[]) {
     jhapascript.read(file_path);
     //jhapascript.show_raw_code();
     vector<string> ass_code = jhapascript.translate_to_ass_code();
-    jhapascript.show_all_funcs();
+    //jhapascript.show_all_funcs();
     //for (int i = 0; i < ass_code.size(); i++) cout << ass_code[i] << endl;
     clock_t start = clock();   // Start timing
     jhapascript.interpret(ass_code);
