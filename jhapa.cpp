@@ -1,4 +1,4 @@
-//JHAPASCRIPT: 1.0
+//JHAPASCRIPT: 2.0
 #include <iostream>
 #include <fstream>
 #include <vector>
@@ -34,7 +34,8 @@ class Interpreter{
 
     vector<string> keywords = 
     {
-        "num", "str", "for", "loop", "if", "end", "else", "print", "input", "while", "endif", "break", "continue", "clear", "num_array", "str_array", "func", "endf", "return"
+        "num", "str", "for", "loop", "if", "end", "else", "print", "input", "while", "endif", "break", "continue",
+        "clear", "num_array", "str_array", "func", "endf", "return"
     };
 
     VariableStorage vars;
@@ -237,6 +238,9 @@ class Interpreter{
                             if (j >= line.length()) break;
 
                             else if (depth == 1 && line[j] == ')') {
+                                vector<Token> t = tokenize_line(current_token);
+                                current_token = "";
+                                for (int k = 0; k < t.size(); k++) current_token += t[k].get_value() + " ";
                                 tokens.emplace_back("call", current_token + ")");
                                 break;
                             }
@@ -429,6 +433,9 @@ class Interpreter{
                         sub_process.funcs = this -> funcs;
                         sub_process.funcs_list = this -> funcs_list;
 
+                        vector<string> global_vars;
+                        for (auto &pair: this -> vars.storage) global_vars.push_back(pair.first);
+
                         string current_params = expression[i + 1].get_value();
                         vector<Token> param_tokens = tokenize_line(current_params), evaluated_param_tokens, temp_tokens;
 
@@ -445,24 +452,26 @@ class Interpreter{
                         //show_tokens(evaluated_param_tokens);
                         
                         string current_function = current_token.get_value();
-                        for (int i = 0; i < funcs.size(); i++) {
-                            if (funcs[i].name == current_function) {
+                        for (int k = 0; k < funcs.size(); k++) {
+                            if (funcs[k].name == current_function) {
 
-                                for (int j = 0; j < funcs[i].params.size(); j++) {
+                                for (int j = 0; j < funcs[k].params.size(); j++) {
                                     sub_process.vars.store(
-                                        funcs[i].params[j].name, funcs[i].params[j].type, evaluated_param_tokens[j].get_value()
+                                        funcs[k].params[j].name, funcs[k].params[j].type, evaluated_param_tokens[j].get_value()
                                     );
                                 }
 
-                                sub_process.ass_code = funcs[i].ass_code;
+                                sub_process.ass_code = funcs[k].ass_code;
                                 expression[i] = sub_process.interpret(sub_process.ass_code, true);
                                 expression.erase(expression.begin() + i + 1);
                                 //show_tokens(expression);
+
+                                //for (int j = 0; j < global_vars.size(); j++) this -> vars.storage[global_vars[j]] = sub_process.vars.storage[global_vars[j]];
+
                                 break;
                             }
                         }
                     }
-                    //show_tokens(expression);
                     i++;
                 }
 
@@ -1390,6 +1399,7 @@ class Interpreter{
                             }
                             i++;
                         }
+                        //cout << current_function.params.size() << endl;
 
                         i = line_no + 1;
 
@@ -1429,8 +1439,9 @@ class Interpreter{
                 //for (int k = 0; k < ass_code.size(); k++) cout << ass_code[k] << endl;
 
             }
-            ass_code.push_back("ext");
-            ass_code.push_back(SEMICOLON);
+            if (!inside_func)
+            {ass_code.push_back("ext");
+            ass_code.push_back(SEMICOLON);}
 
             ofstream out("program.ac");
             for (int i = 0; i < ass_code.size(); i++) {
@@ -1491,8 +1502,9 @@ TODO:
 1. Add &&, || and /* operators |||||||||||||||||||||--Done
 2. Add proper error handling
 3. Add arrays for str and num  |||||||||||||||||||||--DONE
-4. Add functions
+4. Add functions |||||||||||||||||||||||||||--DONE
 5. Make it able to evaluate /n's entered by user in strings
 6. Add comments |||||||||||||||||||||||||||||--Done
 7. Add a way to index individual elements of a string
+8. Add in-built functions
 */

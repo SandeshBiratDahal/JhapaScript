@@ -28,9 +28,8 @@ class Variable{
 };
 
 class VariableStorage{
-    map<string,Variable> storage;
-
     public:
+        map<string, Variable> storage;
         void store(string identifier, string data_type, string value) {
             Variable n(data_type, value);
             storage[identifier] = n;
