@@ -447,6 +447,7 @@ class Interpreter{
                         string current_function = current_token.get_value();
                         for (int i = 0; i < funcs.size(); i++) {
                             if (funcs[i].name == current_function) {
+
                                 for (int j = 0; j < funcs[i].params.size(); j++) {
                                     sub_process.vars.store(
                                         funcs[i].params[j].name, funcs[i].params[j].type, evaluated_param_tokens[j].get_value()
@@ -455,8 +456,8 @@ class Interpreter{
 
                                 sub_process.ass_code = funcs[i].ass_code;
                                 expression[i] = sub_process.interpret(sub_process.ass_code, true);
-
                                 expression.erase(expression.begin() + i + 1);
+                                //show_tokens(expression);
                                 break;
                             }
                         }
@@ -892,10 +893,10 @@ class Interpreter{
                 }
 
                 else if (line == "rtn") {
+                    printf("%s", print_buffer.c_str());
                     if (!is_func) return t;
 
                     return evaluate(tokenize_line(ass_code[line_no + 1]));
-                    line_no++;
                 }
 
                 if (print_buffer.size() >= max_buffer_size) {
