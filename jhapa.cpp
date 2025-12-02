@@ -34,7 +34,8 @@ class Interpreter{
 
     vector<string> keywords = 
     {
-        "num", "str", "for", "loop", "if", "end", "else", "print", "input", "while", "endif", "break", "continue",
+        "num", "str", "for", "loop", "if", "end", "else", "print", 
+        "input", "while", "endif", "break", "continue", "swaraj", 
         "clear", "num_array", "str_array", "func", "endf", "return"
     };
 
@@ -46,13 +47,14 @@ class Interpreter{
     vector<vector<string>> last_conditional;
 
     string last_loop;
+
+    string print_buffer;
+
     public:
         string remove_whitespace(string s) {
             string new_string = "";
             for (char c: s) {
-                if (c != ' ' && c != '\t' && c != '\n') {
-                    new_string += c;
-                }
+                if (c != ' ' && c != '\t' && c != '\n') new_string += c;
             }
             return new_string;
         }
@@ -88,10 +90,8 @@ class Interpreter{
 
             while (i < line.length()) {
                 current_token = "";
-                char letter = line[i];
-
-
-                // FOr identifiers and keywords
+                char letter = line[i]; 
+                // For identifiers and keywords
                 if (alphas.find(letter) != string::npos) {
                     current_token += letter;
                     j = i + 1;
@@ -240,7 +240,10 @@ class Interpreter{
                             else if (depth == 1 && line[j] == ')') {
                                 vector<Token> t = tokenize_line(current_token);
                                 current_token = "";
-                                for (int k = 0; k < t.size(); k++) current_token += t[k].get_value() + " ";
+                                for (int k = 0; k < t.size(); k++) {
+                                    if (t[k].get_type() != STR) current_token += t[k].get_value() + " ";
+                                    else current_token += "\"" + t[k].get_value() + "\"" + " ";
+                                }
                                 tokens.emplace_back("call", current_token + ")");
                                 break;
                             }
@@ -341,10 +344,6 @@ class Interpreter{
                 else if (_type == "operator:integerdivide") INTEGERDIVIDE = true;
                 else if (_type == "leftsquares") LEFTSQUARES = true;
                 else if (_type == "operator:notequal") NOTEQUALSTO = true;
-                // if (expression[i].get_type().substr(0, 8) == "operator" || expression[i].get_type() == "leftparanthesis" || expression[i].get_type() == "leftsquares") {
-                //     present_operators.push_back(expression[i].get_value());
-                //     //cout << expression[i].get_value() << endl;
-                // }
             }
 
             bool has_paranthesis = false;
@@ -453,22 +452,28 @@ class Interpreter{
                         
                         string current_function = current_token.get_value();
                         for (int k = 0; k < funcs.size(); k++) {
-                            if (funcs[k].name == current_function) {
+                            if (!funcs[k].ass_code.empty()) {
+                                if (funcs[k].name == current_function) {
+                                    for (int j = 0; j < funcs[k].params.size(); j++) {
+                                        sub_process.vars.store(
+                                            funcs[k].params[j].name, funcs[k].params[j].type, evaluated_param_tokens[j].get_value()
+                                        );                             
+                                    }
 
-                                for (int j = 0; j < funcs[k].params.size(); j++) {
-                                    sub_process.vars.store(
-                                        funcs[k].params[j].name, funcs[k].params[j].type, evaluated_param_tokens[j].get_value()
-                                    );
+                                    sub_process.ass_code = funcs[k].ass_code;       
+                                    printf("%s", print_buffer.c_str());
+                                    print_buffer = "";                             
+                                    expression[i] = sub_process.interpret(sub_process.ass_code, true);
+                                    expression.erase(expression.begin() + i + 1);
+                                    //show_tokens(expression);
+
+                                    //for (int j = 0; j < global_vars.size(); j++) this -> vars.storage[global_vars[j]] = sub_process.vars.storage[global_vars[j]];
+                                    break;
                                 }
-
-                                sub_process.ass_code = funcs[k].ass_code;
-                                expression[i] = sub_process.interpret(sub_process.ass_code, true);
+                            }
+                            else {
+                                expression[i] = Token(NUM, "0" + DECIMAL_SUFFIX);
                                 expression.erase(expression.begin() + i + 1);
-                                //show_tokens(expression);
-
-                                //for (int j = 0; j < global_vars.size(); j++) this -> vars.storage[global_vars[j]] = sub_process.vars.storage[global_vars[j]];
-
-                                break;
                             }
                         }
                     }
@@ -781,7 +786,7 @@ class Interpreter{
             t.set_type(NUM);
             t.set_value("0" + DECIMAL_SUFFIX);
             //cout << "Hello" << endl;
-            string print_buffer;
+            print_buffer = "";
             int max_buffer_size = 100;
             vars.store("endl", STR, "\n");
             //vars.show_all();
@@ -864,7 +869,7 @@ class Interpreter{
 
                         else if (var.get_data_type() == STR) {
                             string str;
-                            cin >> str;
+                            getline(cin, str);
                             vars.edit(identifier, str);
                         }
                         sub_line_no++;
@@ -1407,7 +1412,8 @@ class Interpreter{
                             Token t = tokenize_line(temp_code_lines[i])[0];
 
                             if (t.get_type() == "keyword" && t.get_value() == "endf") {
-                                current_function.ass_code = translate_to_ass_code(current_function_body, true);
+                                if (!current_function_body.empty())
+                                    current_function.ass_code = translate_to_ass_code(current_function_body, true);
                                 break;
                             }
                             else {
@@ -1440,17 +1446,19 @@ class Interpreter{
 
             }
             if (!inside_func)
-            {ass_code.push_back("ext");
-            ass_code.push_back(SEMICOLON);}
-
-            ofstream out("program.ac");
-            for (int i = 0; i < ass_code.size(); i++) {
-                if (i == ass_code.size() - 1) {
-                    out << ass_code[i];
-                    break;
-                }
-                out << ass_code[i] << endl;
+            {
+                ass_code.push_back("ext");
+                ass_code.push_back(SEMICOLON);
             }
+
+            // ofstream out("program.ac");
+            // for (int i = 0; i < ass_code.size(); i++) {
+            //     if (i == ass_code.size() - 1) {
+            //         out << ass_code[i];
+            //         break;
+            //     }
+            //     out << ass_code[i] << endl;
+            // }
             return ass_code;
         }
 
@@ -1507,4 +1515,5 @@ TODO:
 6. Add comments |||||||||||||||||||||||||||||--Done
 7. Add a way to index individual elements of a string
 8. Add in-built functions
+9. Add the concept of global and local variables
 */
